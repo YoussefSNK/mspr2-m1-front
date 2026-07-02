@@ -472,7 +472,7 @@
 class Component extends DCLogic {
   state = { view:'dashboard', country:'all', selectedLot:null, dark:false, collapsed:false, statusFilter:'all', metric:'temp', search:'', alertTab:'all' };
 
-  componentDidMount(){ if(this.props.darkDefault) this.setState({dark:true}); }
+  componentDidMount(){ if(this.props.darkDefault) this.setState({dark:true}); this.loadFromApi(); }
 
   // ---------- helpers ----------
   h(){ return React.createElement.apply(React, arguments); }
@@ -509,15 +509,219 @@ class Component extends DCLogic {
   }
 
   // ---------- DATA ----------
+  // Le modèle est construit à partir des backends si disponibles (voir loadFromApi),
+  // sinon on retombe sur des données de démonstration (buildMockModel).
   get model(){
     if(this._model) return this._model;
+    this._model=this.buildMockModel();
+    return this._model;
+  }
+
+  // ===================================================================
+  //  BRANCHEMENT API — backends FutureKawa (swagger openapi-*.json)
+  //  Change les URL selon ton déploiement (docker-compose, prod, etc.).
+  //  Central = vue siège consolidée ; Pays = drill-down par pays.
+  // ===================================================================
+  // Le frontend ne dialogue QU'AVEC le backend central (cf. cahier des charges,
+  // Fig 1 : Frontend → Backend central → backends pays). Il ne tape jamais les
+  // backends pays en direct : c'est le central qui les interroge et consolide.
+  get apiCentral(){ return (this.props && this.props.centralUrl) || 'http://localhost:8000'; }
+
+  apiGet(url){
+    return fetch(url,{headers:{'Accept':'application/json'}}).then(r=>{
+      if(!r.ok) throw new Error(url+' → HTTP '+r.status); return r.json();
+    });
+  }
+
+  // Chargement initial : santé + données consolidées de tout le réseau.
+  loadFromApi(){
+    const B=this.apiCentral;
+    // Health-check du siège (badge d'état). N'empêche pas le reste.
+    this.apiGet(B+'/health').then(()=>{this._healthy=true;}).catch(()=>{this._healthy=false;});
+    return Promise.all([
+      this.apiGet(B+'/central/lots'),
+      this.apiGet(B+'/central/mesures'),
+      this.apiGet(B+'/central/alertes'),
+      this.apiGet(B+'/central/stocks').catch(()=>null),   // résumé consolidé (schéma non documenté)
+    ]).then(([lots,mes,al,stocks])=>{
+      this._consolidated={lots:this.flatten(lots),mesures:this.flatten(mes),alertes:this.flatten(al)};
+      if(stocks) console.info('[FutureKawa] /central/stocks →',stocks); // à exploiter selon le format réel
+      this._model=this.buildModel(this._consolidated.lots,this._consolidated.mesures,this._consolidated.alertes);
+      this._live=true;
+      this.setState({loaded:Date.now(),country:'all'});
+    }).catch(e=>{
+      console.warn('[FutureKawa] Backend central injoignable — affichage des données de démonstration.',e);
+      this._live=false;
+    });
+  }
+
+  // Sélection d'un pays : exploite les routes /central/pays/{pays}/* du siège.
+  // 'all' → on repart des données consolidées déjà en cache (aucun refetch inutile).
+  selectPays(code,view){
+    const patch={country:code}; if(view) patch.view=view;
+    if(!this._live || !this._consolidated){ this.setState(patch); return; }   // mode démo → filtrage local
+    if(code==='all'){
+      this._model=this.buildModel(this._consolidated.lots,this._consolidated.mesures,this._consolidated.alertes);
+      this.setState(patch); return;
+    }
+    const B=this.apiCentral, pays=this.paysParam(code);
+    Promise.all([
+      this.apiGet(B+'/central/pays/'+encodeURIComponent(pays)+'/lots'),
+      this.apiGet(B+'/central/pays/'+encodeURIComponent(pays)+'/mesures'),
+      this.apiGet(B+'/central/pays/'+encodeURIComponent(pays)+'/alertes'),
+    ]).then(([pl,pm,pa])=>{
+      // on remplace, dans le jeu consolidé, les données de ce pays par la version fraîche
+      const keep=(arr)=>arr.filter(x=>this.paysCode(x.pays)!==code);
+      const lots=keep(this._consolidated.lots).concat(this.flatten(pl));
+      const mes =keep(this._consolidated.mesures).concat(this.flatten(pm));
+      const als =keep(this._consolidated.alertes).concat(this.flatten(pa));
+      this._model=this.buildModel(lots,mes,als);
+      this.setState(patch);
+    }).catch(e=>{
+      console.warn('[FutureKawa] Routes /central/pays/'+pays+'/* indisponibles — filtrage local.',e);
+      this.setState(patch);
+    });
+  }
+  // Valeur réelle de "pays" attendue par l'API, déduite des données (repli sur un slug).
+  paysParam(code){
+    const src=(this._consolidated&&this._consolidated.lots)||[];
+    const hit=src.find(l=>this.paysCode(l.pays)===code);
+    return hit ? hit.pays : ({BR:'bresil',EC:'equateur',CO:'colombie'}[code] || (code||'').toLowerCase());
+  }
+
+  // ---------- mappers API ----------
+  // Table de référence des conditions idéales / responsables : ces infos
+  // ne sont PAS exposées par les backends, on les garde côté front.
+  countryRef(){
+    return {
+      BR:{code:'BR',name:'Brésil',region:'Minas Gerais',idealT:29,idealH:55,tolT:3,tolH:2,resp:'João Almeida'},
+      EC:{code:'EC',name:'Équateur',region:'Loja',idealT:31,idealH:60,tolT:3,tolH:2,resp:'María Castro'},
+      CO:{code:'CO',name:'Colombie',region:'Huila',idealT:26,idealH:80,tolT:3,tolH:2,resp:'Andrés Gómez'},
+    };
+  }
+  defaultRef(code,pays){
+    return {code,name:pays||code,region:'—',idealT:28,idealH:60,tolT:3,tolH:3,resp:'Responsable '+(pays||code)};
+  }
+  // "bresil" / "Brésil" / "BR" → "BR"
+  paysCode(pays){
+    const s=(pays||'').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+    const map={bresil:'BR',brasil:'BR',brazil:'BR',br:'BR',
+      equateur:'EC',ecuador:'EC',ec:'EC',
+      colombie:'CO',colombia:'CO',co:'CO'};
+    return map[s] || s.slice(0,2).toUpperCase();
+  }
+  // Central peut renvoyer un tableau plat OU un objet groupé par pays → on aplatit.
+  flatten(x){
+    if(Array.isArray(x)) return x;
+    if(x && typeof x==='object'){
+      let out=[]; Object.values(x).forEach(v=>{ if(Array.isArray(v)) out=out.concat(v); else if(v&&typeof v==='object') out.push(v); });
+      return out;
+    }
+    return [];
+  }
+  humanizeType(t){
+    const m={temperature:'Température élevée',humidite:'Humidité élevée',humidity:'Humidité élevée',
+      lot_ancien:'Lot périmé',lot_perime:'Lot périmé',age:'Lot périmé',condition:'Conditions hors plage'};
+    t=(t||'').toString(); return m[t.toLowerCase()] || (t?t.charAt(0).toUpperCase()+t.slice(1):'Alerte');
+  }
+  relTime(d,now){
+    const s=Math.max(0,(now-d)/1000);
+    if(s<60) return 'à l’instant';
+    const mn=Math.floor(s/60); if(mn<60) return 'il y a '+mn+' min';
+    const hh=Math.floor(mn/60); if(hh<24) return 'il y a '+hh+' h';
+    const dd=Math.floor(hh/24); return dd===1?'hier':'il y a '+dd+' j';
+  }
+  // Série synthétique si un lot n'a aucune mesure (évite un graphe vide).
+  synthSeries(seed,co){
+    const n=24, rnd=this.rng(this.hash(seed)); const temp=[],hum=[],dates=[];
+    const base=Date.now()-n*3600000, dm=new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'2-digit'});
+    for(let i=0;i<n;i++){ const f=i/(n-1);
+      temp.push(this.round1(co.idealT+(rnd()-0.5)*co.tolT*1.1));
+      hum.push(Math.round(co.idealH+(rnd()-0.5)*co.tolH*1.2));
+      dates.push(dm.format(new Date(base+f*n*3600000)));
+    }
+    return {temp,hum,dates};
+  }
+
+  // Construit le modèle attendu par le rendu à partir des réponses API.
+  buildModel(lotsRaw,mesuresRaw,alertesRaw){
+    const today=new Date();
+    const fmt=new Intl.DateTimeFormat('fr-FR',{day:'numeric',month:'short',year:'numeric'});
+    const dm=new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'2-digit'});
+    const C=this.countryRef();
+    lotsRaw=this.flatten(lotsRaw); mesuresRaw=this.flatten(mesuresRaw); alertesRaw=this.flatten(alertesRaw);
+
+    // index des mesures : par lot_id (historique) et capteurs entrepôt (lot_id null)
+    const byLot={}, entrepotMes=[];
+    mesuresRaw.forEach(mz=>{
+      const rec={t:+mz.temperature,hu:+mz.humidite,when:new Date(mz.date_mesure||mz.created_at||Date.now()),pays:mz.pays,entrepot:mz.entrepot};
+      if(mz.lot_id!=null){ (byLot[mz.lot_id]=byLot[mz.lot_id]||[]).push(rec); }
+      else entrepotMes.push(rec);
+    });
+    Object.values(byLot).forEach(a=>a.sort((x,y)=>x.when-y.when));
+
+    // ----- lots (on exclut les lots expédiés = sortis du stock) -----
+    const lots=lotsRaw.filter(l=>(l.statut||'').toLowerCase()!=='expedie').map(l=>{
+      const code=this.paysCode(l.pays);
+      let co=C[code]; if(!co){ co=this.defaultRef(code,l.pays); C[code]=co; }
+      const dt=new Date(l.date_stockage);
+      const age=Math.max(0,Math.floor((today-dt)/86400000));
+      let temp,hum,dates;
+      const series=byLot[l.id]||[];
+      if(series.length){
+        temp=series.map(r=>this.round1(r.t)); hum=series.map(r=>Math.round(r.hu)); dates=series.map(r=>dm.format(r.when));
+      } else { const g=this.synthSeries(l.lot_code||('L'+l.id),co); temp=g.temp; hum=g.hum; dates=g.dates; }
+      const tNow=temp[temp.length-1], hNow=hum[hum.length-1];
+      const tB=temp.some(v=>Math.abs(v-co.idealT)>co.tolT);
+      const hB=hum.some(v=>Math.abs(v-co.idealH)>co.tolH);
+      const st=(l.statut||'').toLowerCase();
+      const status=(st==='perime'||age>365)?'perime':(st==='en_alerte'||st==='alerte'||tB||hB)?'alerte':'conforme';
+      return {dbId:l.id, id:l.lot_code||('#'+l.id), c:code, country:co, ex:l.exploitation, wh:l.entrepot,
+        d:age, age, ageLabel:age+' j', date:dt, dateLabel:fmt.format(dt),
+        temp, hum, dates, tNow, hNow, tB, hB, status};
+    });
+
+    const counts={total:lots.length,conforme:0,alerte:0,perime:0};
+    lots.forEach(l=>{ if(counts[l.status]!=null) counts[l.status]++; });
+
+    // ----- agrégats par pays (capteurs entrepôt + statut consolidé) -----
+    Object.values(C).forEach(co=>{
+      const cl=lots.filter(l=>l.c===co.code); co.lots=cl.length;
+      const em=entrepotMes.filter(r=>this.paysCode(r.pays)===co.code).sort((a,b)=>a.when-b.when);
+      if(em.length){ co.sT=this.round1(em[em.length-1].t); co.sH=Math.round(em[em.length-1].hu); co.spark=em.slice(-20).map(r=>this.round1(r.t)); }
+      else if(cl.length){ co.sT=this.round1(cl.reduce((s,l)=>s+l.tNow,0)/cl.length); co.sH=Math.round(cl.reduce((s,l)=>s+l.hNow,0)/cl.length); co.spark=cl.slice(-20).map(l=>l.tNow); }
+      else { co.sT=co.idealT; co.sH=co.idealH; co.spark=[co.idealT]; }
+      if(co.spark.length<2) co.spark=[co.spark[0],co.spark[0]];
+      co.tBreach=Math.abs(co.sT-co.idealT)>co.tolT; co.hBreach=Math.abs(co.sH-co.idealH)>co.tolH;
+      const hasPerime=cl.some(l=>l.status==='perime'); const hasAlerte=cl.some(l=>l.status==='alerte')||co.tBreach||co.hBreach;
+      co.status=hasPerime?'perime':(hasAlerte?'alerte':'conforme');
+    });
+
+    // ----- alertes (uniquement les alertes ouvertes) -----
+    const lotById={}; lots.forEach(l=>lotById[l.dbId]=l);
+    const alerts=alertesRaw.filter(a=>(a.statut||'ouverte').toLowerCase()==='ouverte').map(a=>{
+      const code=this.paysCode(a.pays); let co=C[code]||this.defaultRef(code,a.pays);
+      const isAge=/anc|age|365|perim/i.test((a.type_alerte||'')+' '+(a.message||''));
+      const sev=(isAge || /(crit|danger|perim|haut|high|3|urgent)/i.test(a.niveau||''))?'danger':'warn';
+      const lot=a.lot_id!=null?lotById[a.lot_id]:null;
+      return {type:isAge?'age':'condition', sev, scope:a.lot_id!=null?'Lot':'Entrepôt', co,
+        title:this.humanizeType(a.type_alerte)+' · '+(lot?lot.id:co.name), msg:a.message||'',
+        email:co.resp, lotId:lot?lot.id:null, _when:new Date(a.created_at||Date.now())};
+    });
+    alerts.sort((a,b)=> (a.sev==='danger'?0:1)-(b.sev==='danger'?0:1) || b._when-a._when);
+    alerts.forEach(a=> a.time=this.relTime(a._when,today));
+
+    return {C,lots,counts,alerts,today};
+  }
+
+  // ---------- données de démonstration (repli hors-ligne) ----------
+  buildMockModel(){
     const today=new Date(2026,5,17);
     const fmt=new Intl.DateTimeFormat('fr-FR',{day:'numeric',month:'short',year:'numeric'});
-    const C={
-      BR:{code:'BR',name:'Brésil',region:'Minas Gerais',idealT:29,idealH:55,tolT:3,tolH:2,resp:'João Almeida',sT:32.6,sH:56},
-      EC:{code:'EC',name:'Équateur',region:'Loja',idealT:31,idealH:60,tolT:3,tolH:2,resp:'María Castro',sT:31.4,sH:63},
-      CO:{code:'CO',name:'Colombie',region:'Huila',idealT:26,idealH:80,tolT:3,tolH:2,resp:'Andrés Gómez',sT:26.4,sH:79},
-    };
+    const C=this.countryRef();
+    C.BR.sT=32.6; C.BR.sH=56;
+    C.EC.sT=31.4; C.EC.sH=63;
+    C.CO.sT=26.4; C.CO.sH=79;
     const base=[
       {id:'BR-2511',c:'BR',ex:'Fazenda Bom Jardim',wh:'Entrepôt Santos A1',d:12,tB:0,hB:0},
       {id:'BR-2503',c:'BR',ex:'Fazenda Serra Verde',wh:'Entrepôt Santos A2',d:28,tB:0,hB:0},
@@ -595,8 +799,7 @@ class Component extends DCLogic {
     alerts.sort((a,b)=> (a.sev==='danger'?0:1)-(b.sev==='danger'?0:1) || a.order-b.order);
     alerts.forEach((a,i)=> a.time=tlabels[Math.min(i,tlabels.length-1)]);
 
-    this._model={C,lots,counts,alerts,today};
-    return this._model;
+    return {C,lots,counts,alerts,today};
   }
 
   // ---------- chart ----------
@@ -715,7 +918,7 @@ class Component extends DCLogic {
       themeLabel: st.dark?'Mode clair':'Mode sombre',
       collapseIcon:h('span',{style:{color:'var(--ink-soft)',display:'grid',placeItems:'center',transform:collapsed?'rotate(180deg)':'none',transition:'transform .3s'}},this.icon('chev')),
       pageTitle:ph[0], pageSub:ph[1],
-      liveLabel:'Données en direct',
+      liveLabel: this._live?'Données en direct':'Mode démo',
       showBack: st.view==='detail',
       goBack:()=>this.open('stocks'),
       backIcon:this.icon('back',18),
@@ -734,7 +937,7 @@ class Component extends DCLogic {
     if(st.view==='dashboard'){
       out.kpis=[
         {label:'Lots en stock',value:m.counts.total,sub:'répartis sur 3 pays',icon:this.icon('box',18),tint:'var(--ink)',tintBg:'var(--surface-2)'},
-        {label:'Conformes',value:m.counts.conforme,sub:Math.round(m.counts.conforme/m.counts.total*100)+'% du stock',icon:this.icon('check',18),tint:'var(--ok)',tintBg:'var(--ok-soft)'},
+        {label:'Conformes',value:m.counts.conforme,sub:(m.counts.total?Math.round(m.counts.conforme/m.counts.total*100):0)+'% du stock',icon:this.icon('check',18),tint:'var(--ok)',tintBg:'var(--ok-soft)'},
         {label:'En alerte',value:m.counts.alerte,sub:'conditions hors plage',icon:this.icon('alert',18),tint:'var(--warn)',tintBg:'var(--warn-soft)'},
         {label:'Périmés > 365 j',value:m.counts.perime,sub:'à expédier en priorité',icon:this.icon('clock',18),tint:'var(--danger)',tintBg:'var(--danger-soft)'},
       ];
@@ -742,7 +945,7 @@ class Component extends DCLogic {
       out.mapPins=['CO','EC','BR'].map(code=>{ const co=m.C[code]; return {
         name:co.name, statusLabel:this.statusLabel(co.status), color:this.statusColor(co.status),
         left:pinPos[code].left, top:pinPos[code].top,
-        onClick:()=>this.setState({view:'stocks',country:code}),
+        onClick:()=>this.selectPays(code,'stocks'),
       };});
       out.recentAlerts=m.alerts.slice(0,4).map(a=>({
         title:a.title, msg:a.msg, time:a.time,
@@ -761,7 +964,7 @@ class Component extends DCLogic {
           tNow:co.sT, hNow:co.sH, tIdeal:co.idealT, hIdeal:co.idealH, tolT:co.tolT, tolH:co.tolH,
           tColor:tCol, hColor:hCol,
           tIcon:this.icon('temp',13), hIcon:this.icon('drop',13),
-          onClick:()=>this.setState({view:'stocks',country:code}),
+          onClick:()=>this.selectPays(code,'stocks'),
         };
       });
     }
@@ -770,7 +973,7 @@ class Component extends DCLogic {
     if(st.view==='stocks'){
       const tabDef=[{k:'all',l:'Tous'},{k:'BR',l:'Brésil'},{k:'EC',l:'Équateur'},{k:'CO',l:'Colombie'}];
       const tabStyle=(active)=>'border:none;border-radius:8px;padding:8px 15px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;transition:.2s;background:'+(active?'var(--primary)':'transparent')+';color:'+(active?'#fff':'var(--ink-soft)');
-      out.countryTabs=tabDef.map(t=>({label:t.l,onClick:()=>this.setState({country:t.k}),style:tabStyle(st.country===t.k)}));
+      out.countryTabs=tabDef.map(t=>({label:t.l,onClick:()=>this.selectPays(t.k),style:tabStyle(st.country===t.k)}));
 
       let pool=m.lots.filter(l=> st.country==='all'||l.c===st.country);
       const fCount=(s)=> pool.filter(l=> s==='all'||l.status===s).length;
