@@ -525,7 +525,7 @@ class Component extends DCLogic {
   // Le frontend ne dialogue QU'AVEC le backend central (cf. cahier des charges,
   // Fig 1 : Frontend → Backend central → backends pays). Il ne tape jamais les
   // backends pays en direct : c'est le central qui les interroge et consolide.
-  get apiCentral(){ return (this.props && this.props.centralUrl) || 'http://localhost:8000'; }
+  get apiCentral(){ return (this.props && this.props.centralUrl) || 'http://localhost:9000'; }
 
   apiGet(url){
     return fetch(url,{headers:{'Accept':'application/json'}}).then(r=>{
@@ -610,10 +610,13 @@ class Component extends DCLogic {
       colombie:'CO',colombia:'CO',co:'CO'};
     return map[s] || s.slice(0,2).toUpperCase();
   }
-  // Central peut renvoyer un tableau plat OU un objet groupé par pays → on aplatit.
+  // Central peut renvoyer un tableau plat, un objet groupé par pays, OU une
+  // enveloppe {data:[...], errors:{}, total:N} → on aplatit vers un tableau.
   flatten(x){
     if(Array.isArray(x)) return x;
     if(x && typeof x==='object'){
+      // enveloppe standard du central : on ne garde que `data`
+      if(Array.isArray(x.data)) return x.data;
       let out=[]; Object.values(x).forEach(v=>{ if(Array.isArray(v)) out=out.concat(v); else if(v&&typeof v==='object') out.push(v); });
       return out;
     }
