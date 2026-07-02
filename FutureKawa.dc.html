@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,18,500;1,18,600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Hanken Grotesk',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  :root{
+    --bg:oklch(0.972 0.009 96);
+    --surface:oklch(0.995 0.004 96);
+    --surface-2:oklch(0.955 0.012 100);
+    --border:oklch(0.905 0.013 110);
+    --border-soft:oklch(0.935 0.01 108);
+    --ink:oklch(0.27 0.022 158);
+    --ink-soft:oklch(0.46 0.02 150);
+    --ink-faint:oklch(0.6 0.016 140);
+    --primary:oklch(0.52 0.1 152);
+    --primary-strong:oklch(0.43 0.1 156);
+    --primary-soft:oklch(0.93 0.03 150);
+    --coffee:oklch(0.51 0.062 62);
+    --coffee-soft:oklch(0.92 0.026 72);
+    --ok:oklch(0.55 0.11 154);
+    --ok-soft:oklch(0.93 0.04 150);
+    --warn:oklch(0.66 0.13 72);
+    --warn-soft:oklch(0.93 0.05 82);
+    --danger:oklch(0.56 0.16 32);
+    --danger-soft:oklch(0.93 0.04 38);
+    --shadow:0 1px 2px oklch(0.4 0.03 150/0.05), 0 8px 24px oklch(0.4 0.03 150/0.06);
+    --shadow-sm:0 1px 2px oklch(0.4 0.03 150/0.06);
+    --r:14px;
+    --r-sm:10px;
+  }
+  [data-theme="dark"]{
+    --bg:oklch(0.205 0.018 160);
+    --surface:oklch(0.252 0.02 160);
+    --surface-2:oklch(0.29 0.022 160);
+    --border:oklch(0.345 0.022 160);
+    --border-soft:oklch(0.31 0.02 160);
+    --ink:oklch(0.945 0.012 120);
+    --ink-soft:oklch(0.78 0.016 130);
+    --ink-faint:oklch(0.62 0.016 140);
+    --primary:oklch(0.74 0.12 150);
+    --primary-strong:oklch(0.82 0.12 150);
+    --primary-soft:oklch(0.31 0.04 156);
+    --coffee:oklch(0.72 0.06 66);
+    --coffee-soft:oklch(0.33 0.032 66);
+    --ok:oklch(0.72 0.11 154);
+    --ok-soft:oklch(0.32 0.045 152);
+    --warn:oklch(0.78 0.13 78);
+    --warn-soft:oklch(0.36 0.06 78);
+    --danger:oklch(0.67 0.16 33);
+    --danger-soft:oklch(0.34 0.06 35);
+    --shadow:0 1px 2px oklch(0 0 0/0.2), 0 10px 30px oklch(0 0 0/0.28);
+    --shadow-sm:0 1px 2px oklch(0 0 0/0.25);
+  }
+  @keyframes viewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes softPulse{0%,100%{opacity:1}50%{opacity:0.35}}
+  @keyframes ringPulse{0%{transform:scale(1);opacity:0.5}70%,100%{transform:scale(2.4);opacity:0}}
+  @keyframes dash{to{stroke-dashoffset:0}}
+  ::-webkit-scrollbar{width:11px;height:11px}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:8px;border:3px solid transparent;background-clip:padding-box}
+  ::-webkit-scrollbar-thumb:hover{background:var(--ink-faint)}
+</style>
+</helmet>
+
+<div data-theme="{{ theme }}" style="display:flex;height:100vh;width:100%;background:var(--bg);color:var(--ink);overflow:hidden;transition:background .4s ease,color .4s ease">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside style="flex:none;width:{{ sidebarWidth }};background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .32s cubic-bezier(.4,0,.2,1);overflow:hidden;z-index:5">
+
+    <!-- brand -->
+    <div style="display:flex;align-items:center;gap:12px;padding:20px 18px 16px;height:72px;flex:none">
+      <div style="flex:none;width:38px;height:38px;border-radius:11px;background:linear-gradient(150deg,var(--primary),var(--primary-strong));display:grid;place-items:center;box-shadow:0 4px 12px oklch(0.5 0.1 152/0.28)">
+        {{ brandLeaf }}
+      </div>
+      <sc-if value="{{ showBrandText }}" hint-placeholder-val="{{ true }}">
+        <div style="line-height:1;white-space:nowrap">
+          <div style="font-family:'Newsreader',serif;font-style:italic;font-weight:600;font-size:20px;letter-spacing:.2px">FutureKawa</div>
+          <div style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-top:3px;font-weight:600">Suivi des stocks</div>
+        </div>
+      </sc-if>
+    </div>
+
+    <!-- nav -->
+    <nav style="flex:1;padding:14px 12px;display:flex;flex-direction:column;gap:4px;overflow-y:auto">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="3">
+        <button onClick="{{ item.onClick }}" title="{{ item.label }}" style="{{ item.rowStyle }}" style-hover="background:var(--surface-2)">
+          <span style="flex:none;display:grid;place-items:center;width:22px;height:22px">{{ item.icon }}</span>
+          <sc-if value="{{ showBrandText }}" hint-placeholder-val="{{ true }}">
+            <span style="white-space:nowrap;font-weight:{{ item.weight }};font-size:14.5px">{{ item.label }}</span>
+          </sc-if>
+          <sc-if value="{{ item.showBadge }}" hint-placeholder-val="{{ false }}">
+            <span style="margin-left:auto;background:var(--danger-soft);color:var(--danger);font-size:11px;font-weight:700;min-width:20px;height:20px;padding:0 6px;border-radius:20px;display:grid;place-items:center">{{ item.badge }}</span>
+          </sc-if>
+        </button>
+      </sc-for>
+    </nav>
+
+    <!-- bottom controls -->
+    <div style="flex:none;padding:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:4px">
+      <button onClick="{{ toggleTheme }}" title="Thème" style="display:flex;align-items:center;gap:13px;padding:10px 12px;border:none;background:transparent;color:var(--ink-soft);border-radius:var(--r-sm);cursor:pointer;font:inherit;text-align:left;transition:background .2s" style-hover="background:var(--surface-2)">
+        <span style="flex:none;display:grid;place-items:center;width:22px;height:22px">{{ themeIcon }}</span>
+        <sc-if value="{{ showBrandText }}" hint-placeholder-val="{{ true }}">
+          <span style="white-space:nowrap;font-size:14px;font-weight:500">{{ themeLabel }}</span>
+        </sc-if>
+      </button>
+      <button onClick="{{ toggleSidebar }}" title="Réduire" style="display:flex;align-items:center;gap:13px;padding:10px 12px;border:none;background:transparent;color:var(--ink-soft);border-radius:var(--r-sm);cursor:pointer;font:inherit;text-align:left;transition:background .2s" style-hover="background:var(--surface-2)">
+        <span style="flex:none;display:grid;place-items:center;width:22px;height:22px;transition:transform .3s">{{ collapseIcon }}</span>
+        <sc-if value="{{ showBrandText }}" hint-placeholder-val="{{ true }}">
+          <span style="white-space:nowrap;font-size:14px;font-weight:500">Réduire</span>
+        </sc-if>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+
+    <!-- topbar -->
+    <header style="flex:none;height:72px;display:flex;align-items:center;gap:18px;padding:0 28px;border-bottom:1px solid var(--border);background:color-mix(in oklab,var(--surface) 75%,transparent);backdrop-filter:blur(8px);z-index:4">
+      <sc-if value="{{ showBack }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ goBack }}" style="flex:none;display:flex;align-items:center;gap:7px;height:38px;padding:0 14px 0 11px;border:1px solid var(--border);background:var(--surface);color:var(--ink-soft);border-radius:10px;cursor:pointer;font:inherit;font-size:13.5px;font-weight:600;transition:.2s" style-hover="border-color:var(--primary);color:var(--primary)">{{ backIcon }}<span>Retour</span></button>
+      </sc-if>
+      <div style="min-width:0">
+        <h1 style="margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em;line-height:1.1">{{ pageTitle }}</h1>
+        <div style="font-size:13px;color:var(--ink-faint);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ pageSub }}</div>
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+        <div style="display:flex;align-items:center;gap:9px;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:30px;font-size:13px;color:var(--ink-soft);font-weight:500">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)"></span>
+          {{ liveLabel }}
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 14px 6px 8px;background:var(--coffee-soft);border-radius:30px">
+          <span style="width:30px;height:30px;border-radius:50%;background:var(--coffee);color:#fff;display:grid;place-items:center;font-size:12.5px;font-weight:700">SG</span>
+          <span style="font-size:13px;font-weight:600;color:var(--coffee)">Siège · Global</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- scroll area -->
+    <main style="flex:1;overflow-y:auto;padding:30px 32px 60px">
+
+      <!-- ===== VUE D'ENSEMBLE ===== -->
+      <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+        <div style="max-width:1180px;margin:0 auto;animation:viewIn .45s ease both">
+
+          <!-- KPIs -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+            <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;box-shadow:var(--shadow-sm);transition:transform .25s,box-shadow .25s" style-hover="transform:translateY(-3px);box-shadow:var(--shadow)">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <span style="font-size:12.5px;font-weight:600;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.06em">{{ k.label }}</span>
+                  <span style="width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:{{ k.tintBg }};color:{{ k.tint }}">{{ k.icon }}</span>
+                </div>
+                <div style="font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1;margin-top:14px;color:{{ k.tint }}">{{ k.value }}</div>
+                <div style="font-size:12.5px;color:var(--ink-faint);margin-top:8px">{{ k.sub }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- map + alerts -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px;margin-top:16px">
+
+            <!-- MAP -->
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;position:relative;z-index:2">
+                <div>
+                  <h2 style="margin:0;font-size:16px;font-weight:700">Réseau d'exploitations</h2>
+                  <p style="margin:4px 0 0;font-size:13px;color:var(--ink-faint)">Amérique du Sud · 3 pays connectés au siège</p>
+                </div>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink-faint);letter-spacing:.04em">MQTT · LIVE</span>
+              </div>
+
+              <div style="position:relative;height:340px;margin-top:8px">
+                <!-- topo rings -->
+                <div style="position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);width:420px;height:420px;border-radius:50%;border:1px solid var(--border-soft);opacity:.6"></div>
+                <div style="position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);width:300px;height:300px;border-radius:50%;border:1px solid var(--border-soft);opacity:.5"></div>
+                <div style="position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);width:180px;height:180px;border-radius:50%;border:1px solid var(--border-soft);opacity:.45"></div>
+
+                <!-- continent silhouette -->
+                <svg viewBox="0 0 100 150" preserveAspectRatio="xMidYMid meet" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible">
+                  <path d="M 38 6 C 49 4 58 9 56 19 C 61 23 73 24 70 37 C 81 42 89 61 78 79 C 74 96 66 106 60 119 C 56 129 53 141 46 143 C 41 145 39 136 40 127 C 35 119 29 112 32 99 C 27 87 21 78 24 63 C 19 53 15 43 22 35 C 25 25 28 15 38 6 Z" fill="var(--primary-soft)" stroke="var(--primary)" stroke-width="0.6" stroke-opacity="0.5" stroke-linejoin="round"/>
+                </svg>
+
+                <!-- siège label -->
+                <div style="position:absolute;right:6%;top:6%;display:flex;align-items:center;gap:7px;background:var(--coffee-soft);color:var(--coffee);font-size:11.5px;font-weight:700;padding:6px 11px;border-radius:20px">
+                  <span style="width:7px;height:7px;border-radius:50%;background:var(--coffee)"></span>Siège · Consolidation
+                </div>
+
+                <!-- pins -->
+                <sc-for list="{{ mapPins }}" as="p" hint-placeholder-count="3">
+                  <button onClick="{{ p.onClick }}" style="position:absolute;left:{{ p.left }};top:{{ p.top }};transform:translate(-50%,-50%);background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font:inherit">
+                    <span style="position:relative;display:grid;place-items:center;width:18px;height:18px">
+                      <span style="position:absolute;width:18px;height:18px;border-radius:50%;background:{{ p.color }};opacity:.45;animation:ringPulse 2.6s ease-out infinite"></span>
+                      <span style="width:15px;height:15px;border-radius:50%;background:{{ p.color }};border:3px solid var(--surface);box-shadow:0 2px 6px oklch(0 0 0/.25)"></span>
+                    </span>
+                    <span style="background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:5px 10px;box-shadow:var(--shadow-sm);text-align:center;white-space:nowrap">
+                      <span style="display:block;font-size:12.5px;font-weight:700;color:var(--ink)">{{ p.name }}</span>
+                      <span style="display:block;font-size:11px;color:{{ p.color }};font-weight:600;margin-top:1px">{{ p.statusLabel }}</span>
+                    </span>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+
+            <!-- ALERTS feed -->
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <h2 style="margin:0;font-size:16px;font-weight:700">Alertes récentes</h2>
+                <button onClick="{{ goAlerts }}" style="background:none;border:none;color:var(--primary);font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:0">Tout voir →</button>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:9px;margin-top:16px">
+                <sc-for list="{{ recentAlerts }}" as="a" hint-placeholder-count="4">
+                  <button onClick="{{ a.onClick }}" style="display:flex;gap:13px;align-items:flex-start;text-align:left;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:12px;padding:13px 14px;cursor:pointer;font:inherit;transition:.2s" style-hover="border-color:{{ a.color }}">
+                    <span style="flex:none;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:{{ a.bg }};color:{{ a.color }}">{{ a.icon }}</span>
+                    <span style="min-width:0;flex:1">
+                      <span style="display:flex;align-items:center;gap:8px">
+                        <span style="font-size:13.5px;font-weight:700;color:var(--ink)">{{ a.title }}</span>
+                        <span style="font-size:11px;color:var(--ink-faint);margin-left:auto;white-space:nowrap">{{ a.time }}</span>
+                      </span>
+                      <span style="display:block;font-size:12.5px;color:var(--ink-soft);margin-top:3px;line-height:1.4">{{ a.msg }}</span>
+                    </span>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <!-- country sensor cards -->
+          <h2 style="margin:30px 0 14px;font-size:16px;font-weight:700">Conditions par entrepôt <span style="font-weight:500;color:var(--ink-faint);font-size:14px">· relevés IoT en direct</span></h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+            <sc-for list="{{ countryCards }}" as="c" hint-placeholder-count="3">
+              <button onClick="{{ c.onClick }}" style="text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;box-shadow:var(--shadow-sm);cursor:pointer;font:inherit;transition:transform .25s,box-shadow .25s" style-hover="transform:translateY(-3px);box-shadow:var(--shadow)">
+                <div style="display:flex;align-items:center;gap:11px">
+                  <span style="width:34px;height:34px;border-radius:50%;background:var(--primary-soft);color:var(--primary-strong);display:grid;place-items:center;font-size:12px;font-weight:800;letter-spacing:.02em">{{ c.code }}</span>
+                  <div>
+                    <div style="font-size:15px;font-weight:700">{{ c.name }}</div>
+                    <div style="font-size:11.5px;color:var(--ink-faint)">{{ c.region }} · {{ c.lots }} lots</div>
+                  </div>
+                  <span style="margin-left:auto;font-size:11px;font-weight:700;color:{{ c.statusColor }};background:{{ c.statusBg }};padding:5px 10px;border-radius:20px">{{ c.statusLabel }}</span>
+                </div>
+
+                <div style="margin:16px 0 4px">{{ c.spark }}</div>
+
+                <div style="display:flex;gap:10px;margin-top:14px">
+                  <div style="flex:1;background:var(--surface-2);border-radius:10px;padding:10px 12px">
+                    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-faint);font-weight:600">{{ c.tIcon }} Température</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:600;margin-top:4px;color:{{ c.tColor }}">{{ c.tNow }}°C</div>
+                    <div style="font-size:10.5px;color:var(--ink-faint);margin-top:1px">idéal {{ c.tIdeal }}°C ±{{ c.tolT }}</div>
+                  </div>
+                  <div style="flex:1;background:var(--surface-2);border-radius:10px;padding:10px 12px">
+                    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-faint);font-weight:600">{{ c.hIcon }} Humidité</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:600;margin-top:4px;color:{{ c.hColor }}">{{ c.hNow }}%</div>
+                    <div style="font-size:10.5px;color:var(--ink-faint);margin-top:1px">idéal {{ c.hIdeal }}% ±{{ c.tolH }}</div>
+                  </div>
+                </div>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== STOCKS & LOTS ===== -->
+      <sc-if value="{{ isStocks }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:1180px;margin:0 auto;animation:viewIn .45s ease both">
+
+          <!-- FIFO banner -->
+          <div style="display:flex;align-items:center;gap:12px;background:var(--coffee-soft);border-radius:12px;padding:13px 18px;margin-bottom:18px">
+            <span style="flex:none;color:var(--coffee)">{{ fifoIcon }}</span>
+            <span style="font-size:13.5px;color:var(--coffee);font-weight:500">Tri <b>FIFO</b> — les lots les plus anciens sont en haut et doivent être expédiés en priorité.</span>
+          </div>
+
+          <!-- controls -->
+          <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:18px">
+            <div style="display:flex;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:4px;gap:2px">
+              <sc-for list="{{ countryTabs }}" as="t" hint-placeholder-count="4">
+                <button onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:8px">
+              <sc-for list="{{ statusFilters }}" as="f" hint-placeholder-count="4">
+                <button onClick="{{ f.onClick }}" style="{{ f.style }}">{{ f.label }} <span style="opacity:.6">{{ f.count }}</span></button>
+              </sc-for>
+            </div>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:0 14px;height:40px;min-width:220px">
+              <span style="flex:none;color:var(--ink-faint)">{{ searchIcon }}</span>
+              <input value="{{ search }}" onInput="{{ onSearch }}" placeholder="Rechercher un lot…" style="flex:1;border:none;background:none;outline:none;font:inherit;font-size:14px;color:var(--ink)" />
+            </div>
+          </div>
+
+          <!-- table -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-sm);overflow:hidden">
+            <div style="display:grid;grid-template-columns:1.1fr 1fr 1.5fr 1.2fr .8fr .9fr .9fr;gap:12px;padding:14px 22px;border-bottom:1px solid var(--border);font-size:11.5px;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em">
+              <span>Lot</span><span>Pays</span><span>Entrepôt</span><span>Date stockage</span><span>Âge</span><span>Temp.</span><span>Statut</span>
+            </div>
+            <sc-for list="{{ filteredLots }}" as="l" hint-placeholder-count="6">
+              <button onClick="{{ l.onOpen }}" style="width:100%;display:grid;grid-template-columns:1.1fr 1fr 1.5fr 1.2fr .8fr .9fr .9fr;gap:12px;padding:16px 22px;border:none;border-bottom:1px solid var(--border-soft);background:transparent;cursor:pointer;font:inherit;text-align:left;align-items:center;transition:background .18s" style-hover="background:var(--surface-2)">
+                <span style="font-family:'JetBrains Mono',monospace;font-weight:600;font-size:13.5px;color:var(--ink)">{{ l.id }}</span>
+                <span style="display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink-soft)"><span style="width:9px;height:9px;border-radius:50%;background:{{ l.dot }}"></span>{{ l.countryName }}</span>
+                <span style="font-size:13px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ l.warehouse }}</span>
+                <span style="font-size:13px;color:var(--ink-soft)">{{ l.dateLabel }}</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:{{ l.ageColor }};font-weight:500">{{ l.ageLabel }}</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:{{ l.tColor }};font-weight:500">{{ l.tNow }}°</span>
+                <span><span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:{{ l.statusColor }};background:{{ l.statusBg }};padding:5px 11px;border-radius:20px"><span style="width:6px;height:6px;border-radius:50%;background:{{ l.statusColor }}"></span>{{ l.statusLabel }}</span></span>
+              </button>
+            </sc-for>
+            <sc-if value="{{ noLots }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:48px;text-align:center;color:var(--ink-faint);font-size:14px">Aucun lot ne correspond à ces filtres.</div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== DÉTAIL LOT ===== -->
+      <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:1180px;margin:0 auto;animation:viewIn .45s ease both">
+          <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:16px;align-items:start">
+
+            <!-- left: info + chart -->
+            <div style="display:flex;flex-direction:column;gap:16px">
+
+              <!-- header card -->
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;box-shadow:var(--shadow-sm)">
+                <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600">{{ lot.id }}</span>
+                  <span style="display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:{{ lot.statusColor }};background:{{ lot.statusBg }};padding:6px 13px;border-radius:20px"><span style="width:7px;height:7px;border-radius:50%;background:{{ lot.statusColor }}"></span>{{ lot.statusLabel }}</span>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:20px">
+                  <div><div style="font-size:11.5px;color:var(--ink-faint);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Pays</div><div style="font-size:14.5px;font-weight:600;margin-top:5px">{{ lot.countryName }}</div></div>
+                  <div><div style="font-size:11.5px;color:var(--ink-faint);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Exploitation</div><div style="font-size:14.5px;font-weight:600;margin-top:5px">{{ lot.exploitation }}</div></div>
+                  <div><div style="font-size:11.5px;color:var(--ink-faint);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Entrepôt</div><div style="font-size:14.5px;font-weight:600;margin-top:5px">{{ lot.warehouse }}</div></div>
+                  <div><div style="font-size:11.5px;color:var(--ink-faint);font-weight:600;text-transform:uppercase;letter-spacing:.05em">En stock depuis</div><div style="font-size:14.5px;font-weight:600;margin-top:5px">{{ lot.dateLabel }} · {{ lot.ageLabel }}</div></div>
+                </div>
+              </div>
+
+              <!-- chart card -->
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;box-shadow:var(--shadow-sm)">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+                  <div>
+                    <h2 style="margin:0;font-size:16px;font-weight:700">Historique des relevés</h2>
+                    <p style="margin:4px 0 0;font-size:12.5px;color:var(--ink-faint)">Zone verte = plage acceptable pour {{ lot.countryName }}</p>
+                  </div>
+                  <div style="display:flex;background:var(--surface-2);border-radius:10px;padding:3px;gap:2px">
+                    <sc-for list="{{ metricTabs }}" as="m" hint-placeholder-count="3">
+                      <button onClick="{{ m.onClick }}" style="{{ m.style }}">{{ m.label }}</button>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="margin-top:18px">{{ detailChart }}</div>
+                <div style="display:flex;gap:22px;margin-top:8px;flex-wrap:wrap">
+                  <sc-for list="{{ chartLegend }}" as="g" hint-placeholder-count="2">
+                    <span style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-soft)"><span style="width:14px;height:3px;border-radius:2px;background:{{ g.color }}"></span>{{ g.label }} <b style="font-family:'JetBrains Mono',monospace;color:var(--ink)">{{ g.now }}</b></span>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+
+            <!-- right: alert + timeline -->
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <sc-if value="{{ lot.hasAlert }}" hint-placeholder-val="{{ false }}">
+                <div style="background:{{ lot.statusBg }};border:1px solid {{ lot.statusColor }};border-radius:var(--r);padding:18px 20px">
+                  <div style="display:flex;align-items:center;gap:10px;color:{{ lot.statusColor }}">
+                    <span>{{ lot.alertIcon }}</span><span style="font-size:14.5px;font-weight:700">{{ lot.alertTitle }}</span>
+                  </div>
+                  <p style="margin:10px 0 0;font-size:13px;color:var(--ink-soft);line-height:1.5">{{ lot.alertMsg }}</p>
+                  <div style="display:flex;align-items:center;gap:9px;margin-top:14px;padding-top:14px;border-top:1px solid {{ lot.statusColor }}">
+                    <span style="color:{{ lot.statusColor }}">{{ mailIcon }}</span>
+                    <span style="font-size:12.5px;color:var(--ink-soft)">Email envoyé à <b style="color:var(--ink)">{{ lot.responsable }}</b> (resp. {{ lot.countryName }})</span>
+                  </div>
+                </div>
+              </sc-if>
+
+              <!-- ideal conditions -->
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px;box-shadow:var(--shadow-sm)">
+                <h2 style="margin:0 0 16px;font-size:15px;font-weight:700">Conditions idéales</h2>
+                <div style="display:flex;gap:12px">
+                  <div style="flex:1;text-align:center;background:var(--surface-2);border-radius:11px;padding:16px 10px">
+                    <div style="color:var(--ink-faint);display:flex;justify-content:center">{{ tIconBig }}</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600;margin-top:8px;color:var(--primary-strong)">{{ lot.idealT }}°C</div>
+                    <div style="font-size:11.5px;color:var(--ink-faint);margin-top:3px">tolérance ±{{ lot.tolT }}°C</div>
+                  </div>
+                  <div style="flex:1;text-align:center;background:var(--surface-2);border-radius:11px;padding:16px 10px">
+                    <div style="color:var(--ink-faint);display:flex;justify-content:center">{{ hIconBig }}</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600;margin-top:8px;color:var(--primary-strong)">{{ lot.idealH }}%</div>
+                    <div style="font-size:11.5px;color:var(--ink-faint);margin-top:3px">tolérance ±{{ lot.tolH }}%</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- timeline -->
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px;box-shadow:var(--shadow-sm)">
+                <h2 style="margin:0 0 18px;font-size:15px;font-weight:700">Journal du lot</h2>
+                <div style="display:flex;flex-direction:column">
+                  <sc-for list="{{ lot.events }}" as="e" hint-placeholder-count="3">
+                    <div style="display:flex;gap:14px;padding-bottom:18px;position:relative">
+                      <div style="flex:none;display:flex;flex-direction:column;align-items:center">
+                        <span style="width:30px;height:30px;border-radius:50%;background:{{ e.bg }};color:{{ e.color }};display:grid;place-items:center;z-index:1">{{ e.icon }}</span>
+                        <span style="width:2px;flex:1;background:var(--border);margin-top:4px"></span>
+                      </div>
+                      <div style="padding-top:3px">
+                        <div style="font-size:13.5px;font-weight:600;color:var(--ink)">{{ e.title }}</div>
+                        <div style="font-size:12.5px;color:var(--ink-soft);margin-top:3px;line-height:1.45">{{ e.detail }}</div>
+                        <div style="font-size:11.5px;color:var(--ink-faint);margin-top:4px">{{ e.time }}</div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== ALERTES ===== -->
+      <sc-if value="{{ isAlerts }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:980px;margin:0 auto;animation:viewIn .45s ease both">
+          <div style="display:flex;gap:8px;margin-bottom:20px">
+            <sc-for list="{{ alertTabs }}" as="t" hint-placeholder-count="3">
+              <button onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.label }} <span style="opacity:.6">{{ t.count }}</span></button>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ alertsList }}" as="a" hint-placeholder-count="5">
+              <div style="display:flex;gap:16px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-left:4px solid {{ a.color }};border-radius:var(--r);padding:18px 22px;box-shadow:var(--shadow-sm)">
+                <span style="flex:none;width:42px;height:42px;border-radius:11px;display:grid;place-items:center;background:{{ a.bg }};color:{{ a.color }}">{{ a.icon }}</span>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                    <span style="font-size:15px;font-weight:700">{{ a.title }}</span>
+                    <span style="font-size:11px;font-weight:700;color:{{ a.color }};background:{{ a.bg }};padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em">{{ a.tag }}</span>
+                    <span style="font-size:12px;color:var(--ink-faint);margin-left:auto">{{ a.time }}</span>
+                  </div>
+                  <p style="margin:8px 0 0;font-size:13.5px;color:var(--ink-soft);line-height:1.5">{{ a.msg }}</p>
+                  <div style="display:flex;align-items:center;gap:18px;margin-top:13px;flex-wrap:wrap">
+                    <span style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft)">{{ mailIcon }} Email → <b style="color:var(--ink)">{{ a.email }}</b></span>
+                    <sc-if value="{{ a.hasLot }}" hint-placeholder-val="{{ false }}">
+                      <button onClick="{{ a.onOpen }}" style="background:none;border:none;color:var(--primary);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;padding:0">Voir le lot {{ a.lotId }} →</button>
+                    </sc-if>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+    </main>
+  </div>
+</div>
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" rx="20" fill="#3f7d4e"/>
+    <path d="M50 68A18 18 0 0 1 47 33C61 30 64 29 69 22c2.6 5 5 10.5 5 20a18 18 0 0 1-33 10" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M28 74c0-7.6 4.7-13.6 12.8-15.2" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/>
+  </svg>
+</template></x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;},&quot;darkDefault&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { view:'dashboard', country:'all', selectedLot:null, dark:false, collapsed:false, statusFilter:'all', metric:'temp', search:'', alertTab:'all' };
+
+  componentDidMount(){ if(this.props.darkDefault) this.setState({dark:true}); }
+
+  // ---------- helpers ----------
+  h(){ return React.createElement.apply(React, arguments); }
+  hash(s){ let h=2166136261; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
+  rng(seed){ let a=seed>>>0; return ()=>{ a|=0;a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+  round1(v){ return Math.round(v*10)/10; }
+
+  icon(name,size){
+    const h=this.h, s=size||20;
+    const svg=(...ch)=>h('svg',{width:s,height:s,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','strokeWidth':1.7,'strokeLinecap':'round','strokeLinejoin':'round'},...ch);
+    const P=(d)=>h('path',{d});
+    switch(name){
+      case 'grid': return svg(h('rect',{x:3,y:3,width:7,height:7,rx:1.5}),h('rect',{x:14,y:3,width:7,height:7,rx:1.5}),h('rect',{x:3,y:14,width:7,height:7,rx:1.5}),h('rect',{x:14,y:14,width:7,height:7,rx:1.5}));
+      case 'box': return svg(P('M21 8 12 3 3 8v8l9 5 9-5Z'),P('M3 8l9 5 9-5'),P('M12 13v8'));
+      case 'bell': return svg(P('M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9'),P('M13.7 21a2 2 0 0 1-3.4 0'));
+      case 'leaf': return h('svg',{width:s,height:s,viewBox:'0 0 24 24',fill:'none',stroke:'#fff','strokeWidth':1.8,'strokeLinecap':'round','strokeLinejoin':'round'},h('path',{d:'M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.18 2 8a7 7 0 0 1-13 4'}),h('path',{d:'M2 21c0-3 1.85-5.36 5.08-6'}));
+      case 'sun': return svg(h('circle',{cx:12,cy:12,r:4}),P('M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'));
+      case 'moon': return svg(P('M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z'));
+      case 'chev': return svg(P('M15 18l-6-6 6-6'));
+      case 'back': return svg(P('M19 12H5M12 19l-7-7 7-7'));
+      case 'temp': return svg(P('M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0Z'));
+      case 'drop': return svg(P('M12 2.7S5 9.3 5 14a7 7 0 0 0 14 0c0-4.7-7-11.3-7-11.3Z'));
+      case 'mail': return svg(h('rect',{x:3,y:5,width:18,height:14,rx:2}),P('M3 7l9 6 9-6'));
+      case 'clock': return svg(h('circle',{cx:12,cy:12,r:9}),P('M12 7v5l3 2'));
+      case 'search': return svg(h('circle',{cx:11,cy:11,r:7}),P('M21 21l-4-4'));
+      case 'alert': return svg(P('M12 9v4M12 17h.01'),P('M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z'));
+      case 'calendar': return svg(P('M8 2v3M16 2v3'),h('rect',{x:3,y:5,width:18,height:16,rx:2}),P('M3 10h18'));
+      case 'archive': return svg(P('M3 7v13a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7'),h('rect',{x:2,y:3,width:20,height:4,rx:1}),P('M10 12h4'));
+      case 'check': return svg(P('M20 6 9 17l-5-5'));
+      case 'pin': return svg(P('M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z'),h('circle',{cx:12,cy:10,r:3}));
+      case 'flame': return svg(P('M12 2c1 3-1 4-2 6-1.5 3 .5 5 2 5 1.2 0 3-1 3-3.5 1.5 1.3 2 3 2 4.5a5 5 0 0 1-10 0c0-3.5 3-5 5-12Z'));
+      default: return svg(h('circle',{cx:12,cy:12,r:9}));
+    }
+  }
+
+  // ---------- DATA ----------
+  get model(){
+    if(this._model) return this._model;
+    const today=new Date(2026,5,17);
+    const fmt=new Intl.DateTimeFormat('fr-FR',{day:'numeric',month:'short',year:'numeric'});
+    const C={
+      BR:{code:'BR',name:'Brésil',region:'Minas Gerais',idealT:29,idealH:55,tolT:3,tolH:2,resp:'João Almeida',sT:32.6,sH:56},
+      EC:{code:'EC',name:'Équateur',region:'Loja',idealT:31,idealH:60,tolT:3,tolH:2,resp:'María Castro',sT:31.4,sH:63},
+      CO:{code:'CO',name:'Colombie',region:'Huila',idealT:26,idealH:80,tolT:3,tolH:2,resp:'Andrés Gómez',sT:26.4,sH:79},
+    };
+    const base=[
+      {id:'BR-2511',c:'BR',ex:'Fazenda Bom Jardim',wh:'Entrepôt Santos A1',d:12,tB:0,hB:0},
+      {id:'BR-2503',c:'BR',ex:'Fazenda Serra Verde',wh:'Entrepôt Santos A2',d:28,tB:0,hB:0},
+      {id:'BR-2419',c:'BR',ex:'Fazenda Bom Jardim',wh:'Entrepôt Santos B1',d:96,tB:0,hB:0},
+      {id:'BR-2406',c:'BR',ex:'Fazenda Serra Verde',wh:'Entrepôt Varginha C1',d:158,tB:1,hB:0},
+      {id:'BR-2347',c:'BR',ex:'Sítio Aurora',wh:'Entrepôt Varginha C1',d:372,tB:0,hB:0},
+      {id:'EC-2509',c:'EC',ex:'Hacienda Vilcabamba',wh:'Entrepôt Loja 2',d:19,tB:0,hB:0},
+      {id:'EC-2502',c:'EC',ex:'Hacienda Loja Alta',wh:'Entrepôt Loja 1',d:34,tB:0,hB:0},
+      {id:'EC-2438',c:'EC',ex:'Finca El Cisne',wh:'Entrepôt Loja 2',d:80,tB:0,hB:1},
+      {id:'EC-2410',c:'EC',ex:'Hacienda Loja Alta',wh:'Entrepôt Catamayo 1',d:142,tB:0,hB:0},
+      {id:'EC-2351',c:'EC',ex:'Finca El Cisne',wh:'Entrepôt Loja 1',d:388,tB:0,hB:0},
+      {id:'CO-2508',c:'CO',ex:'Hacienda Pitalito',wh:'Entrepôt Huila 2',d:23,tB:0,hB:0},
+      {id:'CO-2504',c:'CO',ex:'Finca La Esperanza',wh:'Entrepôt Huila 1',d:41,tB:0,hB:0},
+      {id:'CO-2461',c:'CO',ex:'Finca El Roble',wh:'Entrepôt Neiva 1',d:67,tB:0,hB:0},
+      {id:'CO-2427',c:'CO',ex:'Hacienda Pitalito',wh:'Entrepôt Huila 2',d:104,tB:0,hB:0},
+      {id:'CO-2413',c:'CO',ex:'Finca La Esperanza',wh:'Entrepôt Neiva 1',d:165,tB:1,hB:1},
+      {id:'CO-2342',c:'CO',ex:'Finca El Roble',wh:'Entrepôt Huila 1',d:401,tB:0,hB:0},
+    ];
+
+    const lots=base.map(b=>{
+      const co=C[b.c];
+      const status = b.d>365 ? 'perime' : (b.tB||b.hB) ? 'alerte' : 'conforme';
+      const dt=new Date(today.getTime()-b.d*86400000);
+      // series
+      const n=24, rnd=this.rng(this.hash(b.id));
+      const temp=[], hum=[], dates=[];
+      for(let i=0;i<n;i++){
+        const f=i/(n-1);
+        let tv=co.idealT+(rnd()-0.5)*co.tolT*1.1;
+        let hv=co.idealH+(rnd()-0.5)*co.tolH*1.2;
+        if(b.tB && f>0.62){ tv=co.idealT+co.tolT*(1.05+(f-0.62)*2.4)+rnd()*0.5; }
+        if(b.hB && f>0.6){ hv=co.idealH+co.tolH*(1.1+(f-0.6)*2.2)+rnd()*0.4; }
+        temp.push(this.round1(tv)); hum.push(Math.round(hv));
+        const dd=new Date(dt.getTime()+f*b.d*86400000);
+        dates.push(new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'2-digit'}).format(dd));
+      }
+      return {...b, country:co, status, date:dt, dateLabel:fmt.format(dt), age:b.d,
+        ageLabel:b.d+' j', temp, hum, dates, tNow:temp[n-1], hNow:hum[n-1] };
+    });
+
+    const counts={ total:lots.length, conforme:0, alerte:0, perime:0 };
+    lots.forEach(l=>counts[l.status]++);
+
+    // country sensor breach flags
+    Object.values(C).forEach(co=>{
+      co.tBreach = Math.abs(co.sT-co.idealT)>co.tolT;
+      co.hBreach = Math.abs(co.sH-co.idealH)>co.tolH;
+      const cl=lots.filter(l=>l.c===co.code);
+      co.lots=cl.length;
+      const hasPerime=cl.some(l=>l.status==='perime');
+      const hasAlerte=cl.some(l=>l.status==='alerte')||co.tBreach||co.hBreach;
+      co.status = hasPerime?'perime':(hasAlerte?'alerte':'conforme');
+      // sensor sparkline
+      const r2=this.rng(this.hash('S'+co.code)); const sp=[];
+      for(let i=0;i<20;i++){ sp.push(this.round1(co.sT+(r2()-0.5)*1.6 + (co.tBreach&&i>13?1.2:0))); }
+      co.spark=sp;
+    });
+
+    // alerts
+    const alerts=[];
+    const tlabels=['il y a 6 min','il y a 22 min','il y a 1 h','il y a 3 h','il y a 5 h','hier','il y a 2 j'];
+    Object.values(C).forEach(co=>{
+      if(co.tBreach) alerts.push({type:'condition',sev:'warn',scope:'Entrepôt',co,title:'Température élevée · '+co.name,msg:'Capteur entrepôt à '+co.sT+'°C (idéal '+co.idealT+'°C ±'+co.tolT+'). Aération recommandée.',email:co.resp,lotId:null,order:1});
+      if(co.hBreach) alerts.push({type:'condition',sev:'warn',scope:'Entrepôt',co,title:'Humidité élevée · '+co.name,msg:'Capteur entrepôt à '+co.sH+'% (idéal '+co.idealH+'% ±'+co.tolH+'). Risque pour les arômes.',email:co.resp,lotId:null,order:1});
+    });
+    lots.forEach(l=>{
+      if(l.status==='alerte'){
+        const parts=[]; if(l.tB) parts.push('température '+l.tNow+'°C'); if(l.hB) parts.push('humidité '+l.hNow+'%');
+        alerts.push({type:'condition',sev:'warn',scope:'Lot',co:l.country,title:'Conditions hors plage · '+l.id,msg:'Relevés du lot hors tolérance ('+parts.join(', ')+') pour '+l.country.name+'.',email:l.country.resp,lotId:l.id,order:0});
+      }
+      if(l.status==='perime'){
+        alerts.push({type:'age',sev:'danger',scope:'Lot',co:l.country,title:'Lot périmé · '+l.id,msg:'Stockage de '+l.age+' jours (> 365 j). À déclasser ou expédier en priorité.',email:l.country.resp,lotId:l.id,order:0});
+      }
+    });
+    alerts.sort((a,b)=> (a.sev==='danger'?0:1)-(b.sev==='danger'?0:1) || a.order-b.order);
+    alerts.forEach((a,i)=> a.time=tlabels[Math.min(i,tlabels.length-1)]);
+
+    this._model={C,lots,counts,alerts,today};
+    return this._model;
+  }
+
+  // ---------- chart ----------
+  smooth(pts){
+    if(pts.length<2) return pts.map((p,i)=>(i?'L':'M')+p.x+' '+p.y).join(' ');
+    let d='M '+pts[0].x+' '+pts[0].y;
+    for(let i=0;i<pts.length-1;i++){
+      const p0=pts[i-1]||pts[i],p1=pts[i],p2=pts[i+1],p3=pts[i+2]||p2;
+      const c1x=p1.x+(p2.x-p0.x)/6,c1y=p1.y+(p2.y-p0.y)/6;
+      const c2x=p2.x-(p3.x-p1.x)/6,c2y=p2.y-(p3.y-p1.y)/6;
+      d+=' C '+c1x+' '+c1y+' '+c2x+' '+c2y+' '+p2.x+' '+p2.y;
+    }
+    return d;
+  }
+  buildChart(opts){
+    const h=this.h;
+    const {vw=720,vh=290,series,band,dates,small,id='c'}=opts;
+    const pad= small?{l:4,r:4,t:6,b:4}:{l:46,r:18,t:18,b:30};
+    const pw=vw-pad.l-pad.r, ph=vh-pad.t-pad.b;
+    const n=series[0].vals.length;
+    const mapX=i=> pad.l + (n<=1?0:i/(n-1))*pw;
+    series.forEach(s=>{
+      let mn=Math.min.apply(null,s.vals), mx=Math.max.apply(null,s.vals);
+      if(band && series.length===1){ mn=Math.min(mn,band.lo); mx=Math.max(mx,band.hi); }
+      const p=(mx-mn||1)*0.22; s._mn=mn-p; s._mx=mx+p;
+    });
+    const mapY=(v,s)=> pad.t + (1-(v-s._mn)/((s._mx-s._mn)||1))*ph;
+    const kids=[];
+    // grid
+    if(!small){
+      for(let g=0;g<=3;g++){ const y=pad.t+g/3*ph; kids.push(h('line',{key:'g'+g,x1:pad.l,x2:vw-pad.r,y1:y,y2:y,stroke:'var(--border-soft)','strokeWidth':1})); }
+    }
+    // band
+    if(band && series.length===1 && !small){
+      const s0=series[0], yhi=mapY(band.hi,s0), ylo=mapY(band.lo,s0), yid=mapY(band.ideal,s0);
+      kids.push(h('rect',{key:'band',x:pad.l,y:yhi,width:pw,height:Math.max(0,ylo-yhi),fill:'var(--ok-soft)',opacity:.7,rx:4}));
+      kids.push(h('line',{key:'ideal',x1:pad.l,x2:vw-pad.r,y1:yid,y2:yid,stroke:'var(--ok)','strokeWidth':1.3,'strokeDasharray':'5 5',opacity:.7}));
+      kids.push(h('text',{key:'idt',x:vw-pad.r,y:yid-6,fill:'var(--ok)','fontSize':11,'textAnchor':'end','fontWeight':600,'fontFamily':'JetBrains Mono'},'idéal '+band.ideal));
+    }
+    series.forEach((s,si)=>{
+      const pts=s.vals.map((v,i)=>({x:mapX(i),y:mapY(v,s)}));
+      const d=this.smooth(pts);
+      if(s.area){
+        const gid=id+'-grad'+si;
+        kids.push(h('defs',{key:'def'+si},h('linearGradient',{id:gid,x1:0,y1:0,x2:0,y2:1},
+          h('stop',{offset:'0%','stopColor':s.color,'stopOpacity':small?.32:.26}),
+          h('stop',{offset:'100%','stopColor':s.color,'stopOpacity':0}))));
+        kids.push(h('path',{key:'area'+si,d:d+' L '+pts[pts.length-1].x+' '+(pad.t+ph)+' L '+pts[0].x+' '+(pad.t+ph)+' Z',fill:'url(#'+gid+')'}));
+      }
+      kids.push(h('path',{key:'line'+si,d,fill:'none',stroke:s.color,'strokeWidth':small?2:2.4,'strokeLinecap':'round','strokeLinejoin':'round'}));
+      const last=pts[pts.length-1];
+      kids.push(h('circle',{key:'dot'+si,cx:last.x,cy:last.y,r:small?2.6:4,fill:s.color,stroke:'var(--surface)','strokeWidth':small?1.4:2.4}));
+    });
+    // axes labels
+    if(!small){
+      const s0=series[0];
+      [s0._mx,(s0._mx+s0._mn)/2,s0._mn].forEach((v,gi)=>{
+        kids.push(h('text',{key:'yl'+gi,x:pad.l-10,y:pad.t+gi/2*ph+4,fill:'var(--ink-faint)','fontSize':11,'textAnchor':'end','fontFamily':'JetBrains Mono'},Math.round(v)+(s0.unit||'')));
+      });
+      if(dates){ const idxs=[0,Math.floor(n/2),n-1];
+        idxs.forEach((i,gi)=>{ kids.push(h('text',{key:'xl'+gi,x:mapX(i),y:vh-8,fill:'var(--ink-faint)','fontSize':11,'textAnchor':gi===0?'start':(gi===2?'end':'middle'),'fontFamily':'JetBrains Mono'},dates[i])); });
+      }
+    }
+    return h('svg',{viewBox:'0 0 '+vw+' '+vh,style:{width:'100%',height:small?'46px':'290px',display:'block',overflow:'visible'}},...kids);
+  }
+
+  statusColor(s){ return s==='conforme'?'var(--ok)':s==='alerte'?'var(--warn)':'var(--danger)'; }
+  statusBg(s){ return s==='conforme'?'var(--ok-soft)':s==='alerte'?'var(--warn-soft)':'var(--danger-soft)'; }
+  statusLabel(s){ return s==='conforme'?'Conforme':s==='alerte'?'En alerte':'Périmé'; }
+
+  open(view){ this.setState({view}); document.querySelector('main')&&document.querySelector('main').scrollTo(0,0); }
+
+  // ---------- render ----------
+  renderVals(){
+    const m=this.model, st=this.state, h=this.h;
+    const theme = st.dark?'dark':'light';
+    const collapsed=st.collapsed;
+    const sel = st.selectedLot ? m.lots.find(l=>l.id===st.selectedLot) : null;
+
+    // nav
+    const navDef=[
+      {key:'dashboard',label:'Vue d\u2019ensemble',icon:'grid'},
+      {key:'stocks',label:'Stocks & lots',icon:'box'},
+      {key:'alerts',label:'Alertes',icon:'bell',badge:m.alerts.length},
+    ];
+    const navActive = (st.view==='detail') ? 'stocks' : st.view;
+    const navItems=navDef.map(d=>{
+      const active = navActive===d.key;
+      return {
+        label:d.label,
+        icon:h('span',{style:{color:active?'var(--primary)':'var(--ink-soft)',display:'grid',placeItems:'center'}},this.icon(d.icon)),
+        weight: active?700:500,
+        showBadge: d.key==='alerts' && d.badge>0,
+        badge:d.badge,
+        onClick:()=>this.open(d.key==='stocks'?'stocks':d.key),
+        rowStyle:'display:flex;align-items:center;gap:13px;padding:11px 12px;border:none;border-radius:var(--r-sm);cursor:pointer;font:inherit;text-align:left;width:100%;transition:background .2s;color:'+(active?'var(--primary)':'var(--ink-soft)')+';background:'+(active?'var(--primary-soft)':'transparent'),
+      };
+    });
+
+    // page header
+    const titles={ dashboard:['Vue d\u2019ensemble','Consolidation siège · '+m.counts.total+' lots sur 3 pays'],
+      stocks:['Stocks & lots','Suivi des lots et logique FIFO'],
+      detail:[sel?sel.id:'Lot', sel?(sel.country.name+' · '+sel.exploitation):''],
+      alerts:['Centre d\u2019alertes', m.alerts.length+' alertes actives']};
+    const ph=titles[st.view]||titles.dashboard;
+
+    const out={
+      theme,
+      sidebarWidth: collapsed?'78px':'250px',
+      showBrandText: !collapsed,
+      brandLeaf:this.icon('leaf'),
+      navItems,
+      toggleTheme:()=>this.setState({dark:!st.dark}),
+      toggleSidebar:()=>this.setState({collapsed:!st.collapsed}),
+      themeIcon:h('span',{style:{color:'var(--ink-soft)',display:'grid',placeItems:'center'}},this.icon(st.dark?'sun':'moon')),
+      themeLabel: st.dark?'Mode clair':'Mode sombre',
+      collapseIcon:h('span',{style:{color:'var(--ink-soft)',display:'grid',placeItems:'center',transform:collapsed?'rotate(180deg)':'none',transition:'transform .3s'}},this.icon('chev')),
+      pageTitle:ph[0], pageSub:ph[1],
+      liveLabel:'Données en direct',
+      showBack: st.view==='detail',
+      goBack:()=>this.open('stocks'),
+      backIcon:this.icon('back',18),
+      goAlerts:()=>this.open('alerts'),
+      isOverview: st.view==='dashboard',
+      isStocks: st.view==='stocks',
+      isDetail: st.view==='detail' && !!sel,
+      isAlerts: st.view==='alerts',
+      mailIcon:this.icon('mail',16),
+      tIconBig:this.icon('temp',24), hIconBig:this.icon('drop',24),
+      searchIcon:this.icon('search',18),
+      fifoIcon:this.icon('archive',20),
+    };
+
+    // ===== dashboard =====
+    if(st.view==='dashboard'){
+      out.kpis=[
+        {label:'Lots en stock',value:m.counts.total,sub:'répartis sur 3 pays',icon:this.icon('box',18),tint:'var(--ink)',tintBg:'var(--surface-2)'},
+        {label:'Conformes',value:m.counts.conforme,sub:Math.round(m.counts.conforme/m.counts.total*100)+'% du stock',icon:this.icon('check',18),tint:'var(--ok)',tintBg:'var(--ok-soft)'},
+        {label:'En alerte',value:m.counts.alerte,sub:'conditions hors plage',icon:this.icon('alert',18),tint:'var(--warn)',tintBg:'var(--warn-soft)'},
+        {label:'Périmés > 365 j',value:m.counts.perime,sub:'à expédier en priorité',icon:this.icon('clock',18),tint:'var(--danger)',tintBg:'var(--danger-soft)'},
+      ];
+      const pinPos={BR:{left:'60%',top:'48%'},EC:{left:'25%',top:'34%'},CO:{left:'43%',top:'15%'}};
+      out.mapPins=['CO','EC','BR'].map(code=>{ const co=m.C[code]; return {
+        name:co.name, statusLabel:this.statusLabel(co.status), color:this.statusColor(co.status),
+        left:pinPos[code].left, top:pinPos[code].top,
+        onClick:()=>this.setState({view:'stocks',country:code}),
+      };});
+      out.recentAlerts=m.alerts.slice(0,4).map(a=>({
+        title:a.title, msg:a.msg, time:a.time,
+        color:this.statusColor(a.sev==='danger'?'perime':'alerte'),
+        bg:this.statusBg(a.sev==='danger'?'perime':'alerte'),
+        icon:this.icon(a.type==='age'?'clock':a.title.indexOf('Humidité')>=0?'drop':a.title.indexOf('Température')>=0?'flame':'alert',18),
+        onClick:()=> a.lotId?this.setState({view:'detail',selectedLot:a.lotId}):this.open('alerts'),
+      }));
+      out.countryCards=['BR','EC','CO'].map(code=>{ const co=m.C[code];
+        const tCol = co.tBreach?'var(--warn)':'var(--ink)';
+        const hCol = co.hBreach?'var(--warn)':'var(--ink)';
+        return {
+          code, name:co.name, region:co.region, lots:co.lots,
+          statusColor:this.statusColor(co.status), statusBg:this.statusBg(co.status), statusLabel:this.statusLabel(co.status),
+          spark:this.buildChart({small:true,id:'sp'+code,series:[{vals:co.spark,color:this.statusColor(co.status),area:true}]}),
+          tNow:co.sT, hNow:co.sH, tIdeal:co.idealT, hIdeal:co.idealH, tolT:co.tolT, tolH:co.tolH,
+          tColor:tCol, hColor:hCol,
+          tIcon:this.icon('temp',13), hIcon:this.icon('drop',13),
+          onClick:()=>this.setState({view:'stocks',country:code}),
+        };
+      });
+    }
+
+    // ===== stocks =====
+    if(st.view==='stocks'){
+      const tabDef=[{k:'all',l:'Tous'},{k:'BR',l:'Brésil'},{k:'EC',l:'Équateur'},{k:'CO',l:'Colombie'}];
+      const tabStyle=(active)=>'border:none;border-radius:8px;padding:8px 15px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;transition:.2s;background:'+(active?'var(--primary)':'transparent')+';color:'+(active?'#fff':'var(--ink-soft)');
+      out.countryTabs=tabDef.map(t=>({label:t.l,onClick:()=>this.setState({country:t.k}),style:tabStyle(st.country===t.k)}));
+
+      let pool=m.lots.filter(l=> st.country==='all'||l.c===st.country);
+      const fCount=(s)=> pool.filter(l=> s==='all'||l.status===s).length;
+      const sfDef=[{k:'all',l:'Tous'},{k:'conforme',l:'Conformes'},{k:'alerte',l:'Alertes'},{k:'perime',l:'Périmés'}];
+      const sfStyle=(active,k)=>{ const col=k==='conforme'?'var(--ok)':k==='alerte'?'var(--warn)':k==='perime'?'var(--danger)':'var(--ink)';
+        return 'border:1px solid '+(active?col:'var(--border)')+';border-radius:20px;padding:7px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:.2s;background:'+(active?(k==='all'?'var(--surface-2)':this.statusBg(k)):'var(--surface)')+';color:'+(active&&k!=='all'?col:'var(--ink-soft)');};
+      out.statusFilters=sfDef.map(f=>({label:f.l,count:fCount(f.k),onClick:()=>this.setState({statusFilter:f.k}),style:sfStyle(st.statusFilter===f.k,f.k)}));
+
+      let list=pool.filter(l=> st.statusFilter==='all'||l.status===st.statusFilter);
+      if(st.search.trim()){ const q=st.search.trim().toLowerCase(); list=list.filter(l=> l.id.toLowerCase().indexOf(q)>=0 || l.ex.toLowerCase().indexOf(q)>=0 || l.wh.toLowerCase().indexOf(q)>=0); }
+      list=list.slice().sort((a,b)=> b.age-a.age);
+      out.search=st.search;
+      out.onSearch=(e)=>this.setState({search:e.target.value});
+      out.noLots=list.length===0;
+      out.filteredLots=list.map(l=>({
+        id:l.id, countryName:l.country.name, dot:this.statusColor(l.status),
+        warehouse:l.wh, dateLabel:l.dateLabel, ageLabel:l.ageLabel,
+        ageColor: l.age>365?'var(--danger)':l.age>300?'var(--warn)':'var(--ink-soft)',
+        tNow:l.tNow, tColor: l.tB?'var(--warn)':'var(--ink-soft)',
+        statusColor:this.statusColor(l.status), statusBg:this.statusBg(l.status), statusLabel:this.statusLabel(l.status),
+        onOpen:()=>this.setState({view:'detail',selectedLot:l.id}),
+      }));
+    }
+
+    // ===== detail =====
+    if(st.view==='detail' && sel){
+      const co=sel.country;
+      const metric=st.metric;
+      const mt=(active)=>'border:none;border-radius:8px;padding:7px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:.2s;background:'+(active?'var(--surface)':'transparent')+';color:'+(active?'var(--primary)':'var(--ink-soft)')+';box-shadow:'+(active?'var(--shadow-sm)':'none');
+      out.metricTabs=[{k:'temp',l:'Température'},{k:'hum',l:'Humidité'},{k:'both',l:'Les deux'}].map(t=>({label:t.l,onClick:()=>this.setState({metric:t.k}),style:mt(metric===t.k)}));
+
+      let chart, legend;
+      if(metric==='temp'){
+        chart=this.buildChart({id:'dt',dates:sel.dates,band:{lo:co.idealT-co.tolT,hi:co.idealT+co.tolT,ideal:co.idealT},series:[{vals:sel.temp,color:'var(--coffee)',area:true,unit:'°'}]});
+        legend=[{label:'Température',color:'var(--coffee)',now:sel.tNow+'°C'}];
+      } else if(metric==='hum'){
+        chart=this.buildChart({id:'dh',dates:sel.dates,band:{lo:co.idealH-co.tolH,hi:co.idealH+co.tolH,ideal:co.idealH},series:[{vals:sel.hum,color:'var(--primary)',area:true,unit:'%'}]});
+        legend=[{label:'Humidité',color:'var(--primary)',now:sel.hNow+'%'}];
+      } else {
+        chart=this.buildChart({id:'db',dates:sel.dates,series:[{vals:sel.temp,color:'var(--coffee)',unit:'°'},{vals:sel.hum,color:'var(--primary)',unit:'%'}]});
+        legend=[{label:'Température',color:'var(--coffee)',now:sel.tNow+'°C'},{label:'Humidité',color:'var(--primary)',now:sel.hNow+'%'}];
+      }
+      out.detailChart=chart; out.chartLegend=legend; out.metric=metric;
+
+      // events
+      const ev=[];
+      ev.push({icon:this.icon('calendar',15),bg:'var(--primary-soft)',color:'var(--primary-strong)',title:'Entrée en stockage',detail:sel.exploitation+' → '+sel.wh,time:sel.dateLabel});
+      if(sel.status==='alerte'){
+        ev.push({icon:this.icon('alert',15),bg:'var(--warn-soft)',color:'var(--warn)',title:'Dérive détectée',detail:'Relevés sortis de la plage acceptable pour '+co.name+'.',time:'il y a quelques heures'});
+        ev.push({icon:this.icon('mail',15),bg:'var(--warn-soft)',color:'var(--warn)',title:'Email d\u2019alerte envoyé',detail:'Notification → '+co.resp,time:'automatique'});
+      }
+      if(sel.status==='perime'){
+        ev.push({icon:this.icon('clock',15),bg:'var(--danger-soft)',color:'var(--danger)',title:'Seuil 365 j dépassé',detail:'Lot stocké depuis '+sel.age+' jours.',time:'il y a '+(sel.age-365)+' j'});
+        ev.push({icon:this.icon('mail',15),bg:'var(--danger-soft)',color:'var(--danger)',title:'Email d\u2019alerte envoyé',detail:'Notification → '+co.resp,time:'automatique'});
+      }
+      ev.push({icon:this.icon('check',15),bg:'var(--surface-2)',color:'var(--ink-soft)',title:'Dernier relevé IoT',detail:sel.tNow+'°C · '+sel.hNow+'% d\u2019humidité',time:'à l\u2019instant'});
+
+      out.lot={
+        id:sel.id, statusColor:this.statusColor(sel.status), statusBg:this.statusBg(sel.status), statusLabel:this.statusLabel(sel.status),
+        countryName:co.name, exploitation:sel.ex, warehouse:sel.wh, dateLabel:sel.dateLabel, ageLabel:sel.ageLabel,
+        idealT:co.idealT, idealH:co.idealH, tolT:co.tolT, tolH:co.tolH, responsable:co.resp,
+        hasAlert: sel.status!=='conforme',
+        alertIcon:this.icon(sel.status==='perime'?'clock':'alert',18),
+        alertTitle: sel.status==='perime'?'Lot trop ancien':'Conditions hors plage',
+        alertMsg: sel.status==='perime' ? ('Ce lot dépasse 365 jours de stockage ('+sel.age+' j). Il doit être expédié ou déclassé en priorité selon la logique FIFO.') : ('Les conditions relevées sont sorties de la tolérance ('+(sel.tB?('±'+co.tolT+'°C température'):'')+(sel.tB&&sel.hB?', ':'')+(sel.hB?('±'+co.tolH+'% humidité'):'')+') attendue pour '+co.name+'.'),
+        events:ev,
+      };
+    }
+
+    // ===== alerts =====
+    if(st.view==='alerts'){
+      const tabDef=[{k:'all',l:'Toutes'},{k:'condition',l:'Conditions'},{k:'age',l:'Ancienneté'}];
+      const tabStyle=(active)=>'border:1px solid '+(active?'var(--primary)':'var(--border)')+';border-radius:20px;padding:8px 16px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;transition:.2s;background:'+(active?'var(--primary)':'var(--surface)')+';color:'+(active?'#fff':'var(--ink-soft)');
+      const cnt=(k)=> m.alerts.filter(a=>k==='all'||a.type===k).length;
+      out.alertTabs=tabDef.map(t=>({label:t.l,count:cnt(t.k),onClick:()=>this.setState({alertTab:t.k}),style:tabStyle(st.alertTab===t.k)}));
+      out.alertsList=m.alerts.filter(a=> st.alertTab==='all'||a.type===st.alertTab).map(a=>{
+        const sev=a.sev==='danger'?'perime':'alerte';
+        return {
+          title:a.title, msg:a.msg, time:a.time, email:a.email,
+          color:this.statusColor(sev), bg:this.statusBg(sev),
+          tag: a.type==='age'?'Ancienneté':(a.scope==='Entrepôt'?'Entrepôt':'Conditions'),
+          icon:this.icon(a.type==='age'?'clock':a.title.indexOf('Humidité')>=0?'drop':a.title.indexOf('Température')>=0?'flame':'alert',20),
+          hasLot: !!a.lotId, lotId:a.lotId,
+          onOpen:()=> a.lotId&&this.setState({view:'detail',selectedLot:a.lotId}),
+        };
+      });
+    }
+
+    return out;
+  }
+}
+</script>
+</body>
+</html>
