@@ -97,4 +97,5 @@ export function Icon({ name, size = 20 }) {
 }
 
 // Helper pratique : renvoie un élément <Icon/> (équivalent de this.icon(name,size)).
+// eslint-disable-next-line react-refresh/only-export-components
 export const icon = (name, size) => h(Icon, { name, size })

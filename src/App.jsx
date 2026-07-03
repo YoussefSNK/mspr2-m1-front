@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { icon } from './lib/icons.jsx'
 import { buildChart } from './lib/chart.jsx'
 import {
@@ -35,15 +35,13 @@ export default function App() {
   })
   const setState = (patch) => setStateRaw((s) => ({ ...s, ...patch }))
 
-  // Modèle + drapeaux "live" conservés hors du cycle de rendu (comme les
-  // champs this._model / this._live / this._consolidated de l'original).
-  const modelRef = useRef(null)
-  const consolidatedRef = useRef(null)
+  // Modèle API + données consolidées : conservés en state (et non en refs) pour
+  // rester idiomatique React. `apiModel` est null tant que le backend central
+  // n'a pas répondu → on retombe alors sur les données de démonstration.
+  // Équivalent des champs this._model / this._live / this._consolidated d'origine.
+  const [apiModel, setApiModel] = useState(null)
+  const [consolidated, setConsolidated] = useState(null)
   const [live, setLive] = useState(false)
-  // bump : force un recalcul de `model` quand modelRef change sans que le state
-  // structurel ne suffise (chargement API, drill-down pays).
-  const [bumpN, setBump] = useState(0)
-  const bump = () => setBump((n) => n + 1)
 
   // ---- chargement initial depuis le backend central ----
   useEffect(() => {
@@ -52,11 +50,10 @@ export default function App() {
     loadConsolidated(B)
       .then(({ consolidated }) => {
         if (cancelled) return
-        consolidatedRef.current = consolidated
-        modelRef.current = buildModel(consolidated.lots, consolidated.mesures, consolidated.alertes)
+        setConsolidated(consolidated)
+        setApiModel(buildModel(consolidated.lots, consolidated.mesures, consolidated.alertes))
         setLive(true)
         setState({ country: 'all' })
-        bump()
       })
       .catch((e) => {
         console.warn('[FutureKawa] Backend central injoignable — affichage des données de démonstration.', e)
@@ -65,17 +62,10 @@ export default function App() {
     return () => { cancelled = true }
   }, [])
 
-  // model : API si dispo (modelRef, rafraîchi par le drill-down pays), sinon
-  // données de démonstration construites une seule fois puis mises en cache —
-  // comme le champ this._model de l'original. `bumpN` force la relecture après
-  // un chargement/drill-down API.
-  const mockRef = useRef(null)
-  const model = useMemo(() => {
-    if (modelRef.current) return modelRef.current
-    if (!mockRef.current) mockRef.current = buildMockModel()
-    return mockRef.current
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [live, bumpN])
+  // Données de démonstration construites une seule fois (repli hors-ligne).
+  const mockModel = useMemo(() => buildMockModel(), [])
+  // model : API si disponible, sinon démonstration.
+  const model = apiModel || mockModel
 
   // ---- navigation ----
   const open = (view) => {
@@ -89,15 +79,13 @@ export default function App() {
   const selectPays = (code, view) => {
     const patch = { country: code }
     if (view) patch.view = view
-    const consolidated = consolidatedRef.current
     if (!live || !consolidated) {
       setState(patch)
       return
     }
     if (code === 'all') {
-      modelRef.current = buildModel(consolidated.lots, consolidated.mesures, consolidated.alertes)
+      setApiModel(buildModel(consolidated.lots, consolidated.mesures, consolidated.alertes))
       setState(patch)
-      bump()
       return
     }
     const B = centralUrl()
@@ -108,9 +96,8 @@ export default function App() {
         const lots = keep(consolidated.lots).concat(pl)
         const mes = keep(consolidated.mesures).concat(pm)
         const als = keep(consolidated.alertes).concat(pa)
-        modelRef.current = buildModel(lots, mes, als)
+        setApiModel(buildModel(lots, mes, als))
         setState(patch)
-        bump()
       })
       .catch((e) => {
         console.warn('[FutureKawa] Routes /central/pays/' + pays + '/* indisponibles — filtrage local.', e)
