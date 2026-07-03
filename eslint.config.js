@@ -8,7 +8,7 @@ export default [
   // Dossiers/fichiers à ne jamais linter.
   // support.js et FutureKawa.dc.html : ancien runtime « Design Component »,
   // conservé pour référence mais plus utilisé par le build Vite.
-  { ignores: ['dist', 'node_modules', 'support.js'] },
+  { ignores: ['dist', 'coverage', 'node_modules', 'support.js'] },
 
   // Règles de base recommandées par ESLint.
   js.configs.recommended,

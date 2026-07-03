@@ -71,7 +71,7 @@ export default function App() {
   const open = (view) => {
     setState({ view })
     const m = document.querySelector('main')
-    if (m) m.scrollTo(0, 0)
+    if (m && typeof m.scrollTo === 'function') m.scrollTo(0, 0)
   }
 
   // Sélection d'un pays : drill-down via /central/pays/{pays}/*, ou filtrage

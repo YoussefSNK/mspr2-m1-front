@@ -31,7 +31,16 @@ pipeline {
 
         stage('Test') {
             steps {
-                sh 'npm test'
+                // Tests + couverture. On produit aussi un rapport JUnit
+                // (test-results.xml) et un rapport Cobertura (coverage/…xml),
+                // exploités par Jenkins ci-dessous — même approche que le back.
+                sh 'npm run test:coverage -- --reporter=default --reporter=junit --outputFile=test-results.xml'
+            }
+            post {
+                always {
+                    junit 'test-results.xml'
+                    cobertura coberturaReportFile: 'coverage/cobertura-coverage.xml'
+                }
             }
         }
 
@@ -44,8 +53,8 @@ pipeline {
 
         stage('Archive') {
             steps {
-                archiveArtifacts artifacts: 'dist/**', fingerprint: true
-                echo 'Bundle front prêt dans dist/'
+                archiveArtifacts artifacts: 'dist/**, coverage/cobertura-coverage.xml', fingerprint: true
+                echo 'Bundle front + rapport de couverture archivés'
             }
         }
 
