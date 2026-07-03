@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    tools {
-        // Nom défini dans Manage Jenkins → Tools → NodeJS installations.
-        nodejs 'node20'
-    }
 
     environment {
         IMAGE_NAME = 'futurekawa/frontend'

@@ -15,6 +15,36 @@ npm install
 npm run dev        # serveur de dev Vite
 npm run build      # build de production -> dist/
 npm run preview    # prévisualise le build
+npm run lint       # ESLint
+npm test           # Vitest (tests unitaires + rendu)
+npm run test:watch # Vitest en mode watch
+```
+
+## Qualité & tests
+
+- **ESLint** (`eslint.config.js`, flat config) : règles React Hooks + Fast Refresh.
+- **Vitest** + Testing Library (jsdom) :
+  - `src/lib/model.test.js` — logique métier (mappings pays, statuts, modèle de démo, FIFO).
+  - `src/App.test.jsx` — rendu de l'app (vue d'ensemble, KPIs, mode démo).
+
+## CI/CD — Jenkins
+
+Un `Jenkinsfile` à la racine décrit la pipeline (job **front** distinct du back) :
+
+`Checkout → Install (npm ci) → Lint → Test → Build → Archive (dist/**) → Docker Image`
+
+Pré-requis côté Jenkins : une installation NodeJS nommée **`node20`**
+(Manage Jenkins → Tools → NodeJS installations). Le stage Docker ne s'exécute
+que si `docker` est présent sur l'agent.
+
+## Docker
+
+Image statique servie par nginx (`Dockerfile` multi-stage + `nginx.conf` avec
+fallback SPA) :
+
+```bash
+docker build -t futurekawa/frontend:latest .
+docker run -p 8080:80 futurekawa/frontend:latest   # http://localhost:8080
 ```
 
 ## Backend central
