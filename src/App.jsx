@@ -224,15 +224,13 @@ function buildRenderVals({ model: m, state: st, setState, open, selectPays, live
       { label: 'En alerte', value: m.counts.alerte, sub: 'conditions hors plage', icon: icon('alert', 18), tint: 'var(--warn)', tintBg: 'var(--warn-soft)' },
       { label: 'Périmés > 365 j', value: m.counts.perime, sub: 'à expédier en priorité', icon: icon('clock', 18), tint: 'var(--danger)', tintBg: 'var(--danger-soft)' },
     ]
-    const pinPos = { BR: { left: '60%', top: '48%' }, EC: { left: '25%', top: '34%' }, CO: { left: '43%', top: '15%' } }
     out.mapPins = ['CO', 'EC', 'BR'].map((code) => {
       const co = m.C[code]
       return {
+        code,
         name: co.name,
         statusLabel: statusLabel(co.status),
         color: statusColor(co.status),
-        left: pinPos[code].left,
-        top: pinPos[code].top,
         onClick: () => selectPays(code, 'stocks'),
       }
     })

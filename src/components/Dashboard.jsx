@@ -1,7 +1,42 @@
+import { useEffect, useState } from 'react'
 import Hover from './Hover'
+
+const SOUTH_AMERICA_GEOJSON_URL =
+  'https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/south-america.geojson'
+
+const SOUTH_AMERICA_HIGHLIGHTS = new Map([
+  ['Brazil', 'var(--primary-soft)'],
+  ['Ecuador', 'var(--coffee-soft)'],
+  ['Colombia', 'var(--ok-soft)'],
+])
 
 // Vue d'ensemble : KPIs, carte réseau, alertes récentes, cartes pays.
 export default function Dashboard({ v }) {
+  const [mapLayers, setMapLayers] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    fetch(SOUTH_AMERICA_GEOJSON_URL)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status)
+        }
+        return response.json()
+      })
+      .then((geojson) => {
+        if (cancelled) return
+        setMapLayers(buildSouthAmericaMapLayers(geojson))
+      })
+      .catch(() => {
+        if (!cancelled) setMapLayers(null)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   return (
     <div style={{ maxWidth: '1180px', margin: '0 auto', animation: 'viewIn .45s ease both' }}>
       {/* KPIs */}
@@ -34,16 +69,57 @@ export default function Dashboard({ v }) {
             <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11.5px', color: 'var(--ink-faint)', letterSpacing: '.04em' }}>MQTT · LIVE</span>
           </div>
 
-          <div style={{ position: 'relative', height: '340px', marginTop: '8px' }}>
-            {/* topo rings */}
-            <div style={{ position: 'absolute', left: '50%', top: '52%', transform: 'translate(-50%,-50%)', width: '420px', height: '420px', borderRadius: '50%', border: '1px solid var(--border-soft)', opacity: 0.6 }}></div>
-            <div style={{ position: 'absolute', left: '50%', top: '52%', transform: 'translate(-50%,-50%)', width: '300px', height: '300px', borderRadius: '50%', border: '1px solid var(--border-soft)', opacity: 0.5 }}></div>
-            <div style={{ position: 'absolute', left: '50%', top: '52%', transform: 'translate(-50%,-50%)', width: '180px', height: '180px', borderRadius: '50%', border: '1px solid var(--border-soft)', opacity: 0.45 }}></div>
+          <div style={{ position: 'relative', height: '340px', marginTop: '8px', borderRadius: '20px', background: 'linear-gradient(180deg,color-mix(in oklab,var(--surface) 84%,var(--primary-soft)) 0%,var(--surface) 100%)' }}>
+            {mapLayers ? (
+              <svg viewBox="0 0 520 640" preserveAspectRatio="xMidYMid meet" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
+                <defs>
+                  <filter id="saSoftShadow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="6" stdDeviation="10" floodColor="oklch(0 0 0 / 0.12)" />
+                  </filter>
+                </defs>
 
-            {/* continent silhouette */}
-            <svg viewBox="0 0 100 150" preserveAspectRatio="xMidYMid meet" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
-              <path d="M 38 6 C 49 4 58 9 56 19 C 61 23 73 24 70 37 C 81 42 89 61 78 79 C 74 96 66 106 60 119 C 56 129 53 141 46 143 C 41 145 39 136 40 127 C 35 119 29 112 32 99 C 27 87 21 78 24 63 C 19 53 15 43 22 35 C 25 25 28 15 38 6 Z" fill="var(--primary-soft)" stroke="var(--primary)" strokeWidth="0.6" strokeOpacity="0.5" strokeLinejoin="round" />
-            </svg>
+                <rect x="0" y="0" width="520" height="640" rx="24" fill="transparent" />
+
+                {mapLayers.base.map((layer) => (
+                  <path
+                    key={layer.name}
+                    d={layer.path}
+                    fill={layer.fill}
+                    fillOpacity={layer.fillOpacity}
+                    stroke={layer.stroke}
+                    strokeOpacity={layer.strokeOpacity}
+                    strokeWidth={layer.strokeWidth}
+                    strokeLinejoin="round"
+                    filter={layer.shadow ? 'url(#saSoftShadow)' : undefined}
+                  />
+                ))}
+
+                {mapLayers.highlights.map((layer) => (
+                  <path
+                    key={layer.name}
+                    d={layer.path}
+                    fill={layer.fill}
+                    fillOpacity={layer.fillOpacity}
+                    stroke={layer.stroke}
+                    strokeOpacity={layer.strokeOpacity}
+                    strokeWidth={layer.strokeWidth}
+                    strokeLinejoin="round"
+                    filter="url(#saSoftShadow)"
+                  />
+                ))}
+
+                {mapLayers.labels.map((label) => (
+                  <g key={label.name} transform={`translate(${label.x} ${label.y})`}>
+                    <rect x="-42" y="-14" width="84" height="28" rx="14" fill="var(--surface)" fillOpacity="0.82" stroke="var(--border)" strokeOpacity="0.7" />
+                    <text x="0" y="5" textAnchor="middle" fontSize="13" fontWeight="700" fill="var(--ink-soft)">{label.shortName}</text>
+                  </g>
+                ))}
+              </svg>
+            ) : (
+              <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: 'var(--ink-faint)', fontSize: '13px', letterSpacing: '.02em' }}>
+                Chargement de la carte vectorielle…
+              </div>
+            )}
 
             {/* siège label */}
             <div style={{ position: 'absolute', right: '6%', top: '6%', display: 'flex', alignItems: 'center', gap: '7px', background: 'var(--coffee-soft)', color: 'var(--coffee)', fontSize: '11.5px', fontWeight: 700, padding: '6px 11px', borderRadius: '20px' }}>
@@ -51,18 +127,23 @@ export default function Dashboard({ v }) {
             </div>
 
             {/* pins */}
-            {v.mapPins.map((p, i) => (
-              <button key={i} onClick={p.onClick} style={{ position: 'absolute', left: p.left, top: p.top, transform: 'translate(-50%,-50%)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', font: 'inherit' }}>
-                <span style={{ position: 'relative', display: 'grid', placeItems: 'center', width: '18px', height: '18px' }}>
-                  <span style={{ position: 'absolute', width: '18px', height: '18px', borderRadius: '50%', background: p.color, opacity: 0.45, animation: 'ringPulse 2.6s ease-out infinite' }}></span>
-                  <span style={{ width: '15px', height: '15px', borderRadius: '50%', background: p.color, border: '3px solid var(--surface)', boxShadow: '0 2px 6px oklch(0 0 0/.25)' }}></span>
-                </span>
-                <span style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '9px', padding: '5px 10px', boxShadow: 'var(--shadow-sm)', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                  <span style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: 'var(--ink)' }}>{p.name}</span>
-                  <span style={{ display: 'block', fontSize: '11px', color: p.color, fontWeight: 600, marginTop: '1px' }}>{p.statusLabel}</span>
-                </span>
-              </button>
-            ))}
+            {mapLayers?.pins?.map((p, i) => {
+              const meta = v.mapPins.find((pin) => pin.code === p.code)
+              if (!meta) return null
+
+              return (
+                <button key={i} onClick={meta.onClick} style={{ position: 'absolute', left: p.left + '%', top: p.top + '%', transform: 'translate(-50%,-50%)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', font: 'inherit' }}>
+                  <span style={{ position: 'relative', display: 'grid', placeItems: 'center', width: '18px', height: '18px' }}>
+                    <span style={{ position: 'absolute', width: '18px', height: '18px', borderRadius: '50%', background: meta.color, opacity: 0.45, animation: 'ringPulse 2.6s ease-out infinite' }}></span>
+                    <span style={{ width: '15px', height: '15px', borderRadius: '50%', background: meta.color, border: '3px solid var(--surface)', boxShadow: '0 2px 6px oklch(0 0 0/.25)' }}></span>
+                  </span>
+                  <span style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '9px', padding: '5px 10px', boxShadow: 'var(--shadow-sm)', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                    <span style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: 'var(--ink)' }}>{meta.name}</span>
+                    <span style={{ display: 'block', fontSize: '11px', color: meta.color, fontWeight: 600, marginTop: '1px' }}>{meta.statusLabel}</span>
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </div>
 
@@ -136,4 +217,140 @@ export default function Dashboard({ v }) {
       </div>
     </div>
   )
+}
+
+function buildSouthAmericaMapLayers(geojson) {
+  const features = (geojson && Array.isArray(geojson.features) ? geojson.features : []).filter(
+    (feature) => feature && feature.geometry && feature.properties && feature.properties.name,
+  )
+  if (!features.length) return null
+
+  const points = []
+  features.forEach((feature) => {
+    collectGeoPoints(feature.geometry.coordinates, points)
+  })
+
+  if (!points.length) return null
+
+  const lonMin = Math.min(...points.map((point) => point[0]))
+  const lonMax = Math.max(...points.map((point) => point[0]))
+  const latMin = Math.min(...points.map((point) => point[1]))
+  const latMax = Math.max(...points.map((point) => point[1]))
+
+  const width = 520
+  const height = 640
+  const padding = 22
+  const xScale = (width - padding * 2) / (lonMax - lonMin || 1)
+  const mercatorMin = mercatorY(latMin)
+  const mercatorMax = mercatorY(latMax)
+  const yScale = (height - padding * 2) / (mercatorMax - mercatorMin || 1)
+
+  const project = ([lon, lat]) => {
+    const x = padding + (lon - lonMin) * xScale
+    const y = height - padding - (mercatorY(lat) - mercatorMin) * yScale
+    return [x, y]
+  }
+
+  const base = []
+  const highlights = []
+  const labels = []
+  const pins = []
+
+  features.forEach((feature) => {
+    const name = feature.properties.name.replace(/\s*\(.*\)\s*$/, '')
+    const path = geometryToPath(feature.geometry, project)
+    if (!path) return
+
+    const highlightFill = SOUTH_AMERICA_HIGHLIGHTS.get(name)
+    const centroid = featureCentroid(feature.geometry, project)
+    const shortName = name === 'Ecuador' ? 'Équateur' : name
+
+    base.push({
+      name,
+      path,
+      fill: 'var(--surface-2)',
+      fillOpacity: 0.14,
+      stroke: 'var(--border)',
+      strokeOpacity: 0.72,
+      strokeWidth: 1.1,
+      shadow: false,
+    })
+
+    if (highlightFill) {
+      highlights.push({
+        name,
+        path,
+        fill: highlightFill,
+        fillOpacity: 0.72,
+        stroke: name === 'Brazil' ? 'var(--primary)' : name === 'Ecuador' ? 'var(--coffee)' : 'var(--ok)',
+        strokeOpacity: 0.9,
+        strokeWidth: 1.4,
+      })
+
+      labels.push({
+        name,
+        shortName,
+        x: centroid[0],
+        y: centroid[1],
+      })
+
+      pins.push({
+        code: name === 'Brazil' ? 'BR' : name === 'Ecuador' ? 'EC' : 'CO',
+        left: (centroid[0] / width) * 100,
+        top: (centroid[1] / height) * 100,
+      })
+    }
+  })
+
+  return { base, highlights, labels, pins }
+}
+
+function collectGeoPoints(coordinates, output) {
+  if (!Array.isArray(coordinates)) return output
+  if (coordinates.length && typeof coordinates[0] === 'number') {
+    output.push(coordinates)
+    return output
+  }
+  coordinates.forEach((item) => collectGeoPoints(item, output))
+  return output
+}
+
+function mercatorY(lat) {
+  const clamped = Math.max(-85, Math.min(85, lat))
+  const rad = (clamped * Math.PI) / 180
+  return Math.log(Math.tan(Math.PI / 4 + rad / 2))
+}
+
+function geometryToPath(geometry, project) {
+  if (!geometry || !Array.isArray(geometry.coordinates)) return ''
+
+  const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.type === 'MultiPolygon' ? geometry.coordinates : []
+  const commands = []
+
+  polygons.forEach((polygon) => {
+    polygon.forEach((ring) => {
+      if (!ring.length) return
+      const [startX, startY] = project(ring[0])
+      commands.push('M' + startX.toFixed(2) + ' ' + startY.toFixed(2))
+      for (let i = 1; i < ring.length; i++) {
+        const [x, y] = project(ring[i])
+        commands.push('L' + x.toFixed(2) + ' ' + y.toFixed(2))
+      }
+      commands.push('Z')
+    })
+  })
+
+  return commands.join(' ')
+}
+
+function featureCentroid(geometry, project) {
+  const points = []
+  collectGeoPoints(geometry.coordinates, points)
+  if (!points.length) return [260, 320]
+
+  const xs = points.map((point) => point[0])
+  const ys = points.map((point) => point[1])
+  const lonCenter = (Math.min(...xs) + Math.max(...xs)) / 2
+  const latCenter = (Math.min(...ys) + Math.max(...ys)) / 2
+  return project([lonCenter, latCenter])
 }
