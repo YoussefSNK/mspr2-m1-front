@@ -176,7 +176,7 @@ function buildRenderVals({ model: m, state: st, setState, open, selectPays, live
   const titles = {
     dashboard: ['Vue d’ensemble', 'Consolidation siège · ' + m.counts.total + ' lots sur 3 pays'],
     stocks: ['Stocks & lots', 'Suivi des lots et logique FIFO'],
-    detail: [sel ? sel.id : 'Lot', sel ? sel.country.name + ' · ' + sel.exploitation : ''],
+    detail: [sel ? sel.id : 'Lot', sel ? sel.country.name + ' · ' + sel.ex : ''],
     alerts: ['Centre d’alertes', m.alerts.length + ' alertes actives'],
   }
   const ph = titles[st.view] || titles.dashboard
